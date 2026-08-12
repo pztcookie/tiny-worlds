@@ -53,11 +53,16 @@ agent does the rest.
 
    > /build-a-game using briefs/late-night-laundromat.md
 
-   It reads the framework, proposes a nine-line design — world, quest, loop, personality,
-   secret, traces, reflection, transformation, take-home — and waits for your yes before
-   writing code.
+   Or just `/build-a-game` on its own — it asks for the seven inputs, then writes the brief for
+   you. It reads the framework, proposes a nine-line design — world, quest, loop, personality,
+   secret, traces, reflection, transformation, take-home — into the brief file where you can read
+   it, and waits for your yes before writing code.
 
-3. **Play it while it's built.** The game appears at `games/<slug>/`, served statically.
+3. **Play it while it's built.** The game appears at `games/<slug>/` on a `game/<slug>` branch,
+   served statically at `localhost:8765` and reloaded at every stage, so you watch it happen.
+
+4. **Publish when you're ready.** The agent stops before pushing and asks. Say yes and it opens
+   a pull request; merging it is yours alone, because merging is what puts the game online.
 
 You can also scaffold by hand:
 

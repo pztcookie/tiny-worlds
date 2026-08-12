@@ -10,25 +10,37 @@ Turn a brief into a self-contained browser game under `games/<slug>/`.
 Read `framework/PRODUCT_FRAMEWORK.md` in full before designing. It is the spec. This skill is
 only the process for applying it.
 
+## Approval gates
+
+Three points where you stop and wait for an explicit yes:
+
+1. **The brief** — after the intake round, before designing.
+2. **The design** — after the decision table, before writing any game code.
+3. **Publishing** — after the product test passes, before anything leaves the machine.
+
+A yes at one gate is never a yes at the next. Between gates, work continuously and do not ask
+permission for individual edits — the gates exist so the middle can be uninterrupted.
+
 ## Progress checklist
 
 Copy this and keep it updated:
 
 ```
-- [ ] 1. Collect the brief
-- [ ] 2. Fill the decision table and get approval
-- [ ] 3. Scaffold from template/
+- [ ] 1. Collect the brief, then get it approved
+- [ ] 2. Fill the decision table and get it approved
+- [ ] 3. Branch, scaffold, and put a live preview on screen
 - [ ] 4. Build the world and the loop
 - [ ] 5. Add personality, the secret, traces
 - [ ] 6. Add transformation, reflection, take-home
 - [ ] 7. Run the product test and write the README
+- [ ] 8. Open a pull request, once publishing is approved
 ```
 
 ## 1. Collect the brief
 
 Seven inputs, in `briefs/TEMPLATE.md`:
 
-| Input | Required | If missing |
+| Input | Required | If left to you |
 |---|---|---|
 | Personal lens | yes | ask — nothing else can be decided without it |
 | Object / theme | yes | ask, or offer three options drawn from the lens |
@@ -38,18 +50,35 @@ Seven inputs, in `briefs/TEMPLATE.md`:
 | Time limit | no | assume 1 hour, which means 1 mechanic and 1 secret |
 | Constraints | no | assume browser-only, no build step, no API key |
 
-Ask at most **one** round of questions, and only for the required inputs. If the user gives the
-brief in chat rather than a file, write it into `briefs/<slug>.md` yourself before building.
+Ask about **all seven in one round**, not only the two required ones. The defaults in the right
+column exist so the round never blocks, not so the questions can be skipped. Put the lens and
+the object as open questions; offer desired feeling, time limit and constraints as choices the
+user can wave through, and framework and references as a yes-or-name. Say plainly which inputs
+you will decide yourself if they answer nothing.
 
-**When reference images are provided:** look at them before designing. Take palette, sprite
-scale, and visual language from them; do not copy their UI layout. List in the brief what you
-took from each one.
+One round, though — if an answer is thin, take your best reading of it and show that reading at
+the gate rather than opening a second interview.
+
+Then stop. Repeat the seven filled-in inputs back as a short table and wait for a yes. This is
+the first gate. If one answer forces a different game than an earlier answer implied, say so
+here instead of resolving it silently.
+
+**Reference images.** Ask for them as chat attachments or a folder path, and look at them before
+designing. Take palette, sprite scale, and visual language from them; do not copy their UI
+layout. Copy them into `games/<slug>/assets/` once the slug exists, and list in the brief what
+you took from each one.
 
 ## 2. Fill the decision table and get approval
 
-Complete the "Agent fills this in" table at the bottom of the brief — world, quest, core loop,
-personality, the one secret, traces, reflection, transformation, take-home — and show it to the
-user before writing code. This is a nine-line proposal, not a document.
+Write the brief to `briefs/<slug>.md` first, even when it arrived in chat, then complete the
+"Agent fills this in" table at the bottom — world, quest, core loop, personality, the one
+secret, traces, reflection, transformation, take-home. Open that file in the editor so the plan
+sits beside the conversation and can be read while you discuss it.
+
+Keep the brief the single source of truth for the whole session: when a slot changes mid-build,
+edit the file, don't only mention it in chat.
+
+Nine lines, not a document. Show it and wait — the second gate. No game code before the yes.
 
 Pressure-test it against the three that most often go wrong:
 
@@ -59,18 +88,26 @@ Pressure-test it against the three that most often go wrong:
   not personality. "It hands you a second tomato for free" is.
 - **Secret:** exactly one, discoverable without instructions, hinted at by the world.
 
-## 3. Scaffold
+## 3. Branch, scaffold, preview
+
+Never build a game on `main`. GitHub Pages publishes `main`, so a commit there is a release:
 
 ```bash
+git switch -c game/<slug>
 ./scripts/new-game.sh <slug> "<Game Title>"
 ```
 
-This copies `template/` into `games/<slug>/` and creates `briefs/<slug>.md` if it is missing.
-Then serve it and keep it open while you work:
+`new-game.sh` copies `template/` into `games/<slug>/` and creates `briefs/<slug>.md` if it is
+missing. Then start a server and leave it running for the rest of the session:
 
 ```bash
 cd games/<slug> && python3 -m http.server 8765
 ```
+
+Open `http://localhost:8765` in the browser preview and keep it on screen. This is the point of
+the step, not a footnote to it — the game is meant to be watched as it appears. Reload it at the
+end of every stage below, say in one line what changed, and attach a screenshot when the change
+is visual.
 
 ## 4–6. Build
 
@@ -92,6 +129,10 @@ Budget by time limit: at one hour, spend roughly 15 minutes on world and loop, 1
 personality and secret, 15 on traces and reflection, 15 on the card and polish. When time is
 short, cut mechanics, never the secret and never the take-home.
 
+Reload the preview and commit to the branch at the end of each of the seven. The commits are the
+undo history for a session that goes sideways, and they publish nothing while the branch is not
+`main`.
+
 ## 7. Finish
 
 - Run all ten questions of the product test at the end of the framework. Fix by simplifying.
@@ -99,6 +140,28 @@ short, cut mechanics, never the secret and never the take-home.
   `<details>` block), the traces, and the take-home.
 - Add the game to the arcade list in the root `index.html`.
 - Fill in the "What was learned" section of the brief with what actually worked at the desk.
+
+## 8. Publish
+
+The third gate, and the strict one. Pushing is publishing: the repo is served straight from
+`main`, so a merge puts the game on the open internet at
+`https://pztcookie.github.io/tiny-worlds/games/<slug>/`.
+
+Stop after step 7 and ask. Nothing is pushed until the user says yes to that question. When they
+do:
+
+```bash
+git push -u origin game/<slug>
+gh pr create --title "Add <Game Title>" --body "<loop, secret, traces, take-home>"
+```
+
+Then hand back the pull request URL and stop. **Never push to `main`, never merge the pull
+request, never enable auto-merge.** The merge is the user's, because the merge is the moment the
+game goes live.
+
+If `gh` is missing or not signed in, push the branch anyway and pass along the compare URL that
+`git push` prints. If the user declines to publish, leave the work committed on the branch and
+tell them plainly what is unpushed.
 
 ## House constraints
 

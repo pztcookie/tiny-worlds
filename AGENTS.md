@@ -36,6 +36,13 @@ index.html                the arcade — lists every game in games/
   No video.
 - **Touch and mouse both work,** and the game is playable at 900×600.
 
+## Git and publishing
+
+- **Build on a branch,** `game/<slug>` for a new game. Never commit game work to `main`.
+- **`main` is the live site.** GitHub Pages serves it directly, so merging is publishing.
+- **Pushing needs the owner's explicit yes,** asked for at that moment. Never push to `main`,
+  never merge a pull request, never enable auto-merge. Commit freely on a branch; that is local.
+
 ## Writing rules
 
 - Nothing in the game explains itself with a tutorial or a tooltip wall. If the player looks
