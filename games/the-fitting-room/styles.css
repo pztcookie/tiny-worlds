@@ -36,6 +36,133 @@ body {
   transition: background 1.6s ease;
 }
 
+/* ---------- the night outside the frame ----------
+   Stars are radial gradients on three fixed layers rather than elements or images:
+   nothing to load, nothing running per frame, and only opacity animates. Each layer
+   twinkles on its own clock so they never all blink together. */
+
+#sky,
+#sky i {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-repeat: no-repeat;
+}
+
+#sky {
+  z-index: 0;
+  /* Soft glows, and four-point sparkles made from a wide ellipse crossing a tall one.
+     Kept in the bands above and below the frame, which stay uncovered at every size. */
+  background-image:
+    radial-gradient(ellipse 9px 1px at 18% 5%, var(--glow), transparent),
+    radial-gradient(ellipse 1px 9px at 18% 5%, var(--glow), transparent),
+    radial-gradient(ellipse 7px 1px at 91% 9%, var(--ink), transparent),
+    radial-gradient(ellipse 1px 7px at 91% 9%, var(--ink), transparent),
+    radial-gradient(ellipse 8px 1px at 62% 95%, var(--accent), transparent),
+    radial-gradient(ellipse 1px 8px at 62% 95%, var(--accent), transparent),
+    radial-gradient(circle at 8% 24%, color-mix(in oklab, var(--glow) 40%, transparent) 0 3px, transparent 9px),
+    radial-gradient(circle at 91% 68%, color-mix(in oklab, var(--accent) 36%, transparent) 0 3px, transparent 10px),
+    radial-gradient(circle at 74% 12%, color-mix(in oklab, var(--ink) 30%, transparent) 0 2px, transparent 8px);
+  animation: drift 11s ease-in-out infinite;
+}
+
+/* The same night inside the frame, fainter, so the empty purple has some depth.
+   The cubicle, the mirror and the rail are opaque and cover it. */
+#world::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background-image:
+    radial-gradient(ellipse 8px 1px at 84% 14%, var(--glow), transparent),
+    radial-gradient(ellipse 1px 8px at 84% 14%, var(--glow), transparent),
+    radial-gradient(circle at 12% 9%, var(--ink) 0 1.3px, transparent 2px),
+    radial-gradient(circle at 92% 33%, var(--ink) 0 1.2px, transparent 1.9px),
+    radial-gradient(circle at 27% 15%, var(--glow) 0 1.1px, transparent 1.8px),
+    radial-gradient(circle at 70% 8%, var(--accent) 0 1.3px, transparent 2px),
+    radial-gradient(circle at 95% 78%, var(--ink) 0 1.2px, transparent 1.9px),
+    radial-gradient(circle at 6% 46%, var(--glow) 0 1.2px, transparent 1.9px),
+    radial-gradient(circle at 47% 4%, var(--ink) 0 1.1px, transparent 1.7px),
+    radial-gradient(circle at 88% 57%, var(--ink) 0 1.4px, transparent 2.1px);
+  background-repeat: no-repeat;
+  animation: twinkle-faint 8.4s ease-in-out 0.8s infinite;
+}
+
+#sky i {
+  display: block;
+}
+
+#sky i:nth-child(1) {
+  background-image:
+    radial-gradient(circle at 6% 12%, var(--ink) 0 1.3px, transparent 2px),
+    radial-gradient(circle at 17% 61%, var(--glow) 0 1.6px, transparent 2.4px),
+    radial-gradient(circle at 4% 82%, var(--ink) 0 1.1px, transparent 1.8px),
+    radial-gradient(circle at 24% 33%, var(--ink) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 88% 22%, var(--glow) 0 1.4px, transparent 2.2px),
+    radial-gradient(circle at 96% 44%, var(--ink) 0 1.2px, transparent 1.9px),
+    radial-gradient(circle at 79% 88%, var(--ink) 0 1.5px, transparent 2.3px),
+    radial-gradient(circle at 47% 6%, var(--glow) 0 1.2px, transparent 1.9px);
+  animation: twinkle 4.6s ease-in-out infinite;
+}
+
+#sky i:nth-child(2) {
+  background-image:
+    radial-gradient(circle at 11% 41%, var(--accent) 0 1.4px, transparent 2.2px),
+    radial-gradient(circle at 2% 57%, var(--ink) 0 1px, transparent 1.7px),
+    radial-gradient(circle at 31% 92%, var(--ink) 0 1.3px, transparent 2px),
+    radial-gradient(circle at 68% 96%, var(--glow) 0 1.5px, transparent 2.3px),
+    radial-gradient(circle at 93% 8%, var(--ink) 0 1.2px, transparent 1.9px),
+    radial-gradient(circle at 84% 55%, var(--accent) 0 1.3px, transparent 2.1px),
+    radial-gradient(circle at 63% 3%, var(--ink) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 38% 78%, var(--ink) 0 1.4px, transparent 2.2px);
+  animation: twinkle 7.3s ease-in-out 1.6s infinite;
+}
+
+#sky i:nth-child(3) {
+  background-image:
+    radial-gradient(circle at 14% 5%, var(--glow) 0 1.2px, transparent 1.9px),
+    radial-gradient(circle at 9% 71%, var(--ink) 0 1.5px, transparent 2.3px),
+    radial-gradient(circle at 22% 20%, var(--accent) 0 1.1px, transparent 1.8px),
+    radial-gradient(circle at 71% 76%, var(--ink) 0 1.3px, transparent 2.1px),
+    radial-gradient(circle at 97% 31%, var(--glow) 0 1.4px, transparent 2.2px),
+    radial-gradient(circle at 57% 91%, var(--ink) 0 1.2px, transparent 1.9px),
+    radial-gradient(circle at 86% 38%, var(--ink) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 29% 50%, var(--glow) 0 1.3px, transparent 2px);
+  animation: twinkle 9.8s ease-in-out 3.1s infinite;
+}
+
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0.28;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+
+/* Inside the frame the same stars stay well under the artwork. */
+@keyframes twinkle-faint {
+  0%,
+  100% {
+    opacity: 0.14;
+  }
+  50% {
+    opacity: 0.52;
+  }
+}
+
+@keyframes drift {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
 /* ---------- world ---------- */
 
 #world {
@@ -348,6 +475,8 @@ button {
 
 /* ---------- reveal ---------- */
 
+/* Transparent, so the stars keep going behind the card. The world is hidden by then,
+   and the body underneath is already the right colour. */
 #reveal {
   position: fixed;
   inset: 0;
@@ -356,7 +485,7 @@ button {
   justify-items: center;
   gap: 14px;
   padding: 24px;
-  background: var(--bg);
+  background: transparent;
   overflow: auto;
   opacity: 0;
   animation: fade-in 0.9s ease forwards;

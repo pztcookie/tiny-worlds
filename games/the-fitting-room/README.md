@@ -104,6 +104,11 @@ a chair pulled up to a mirror."* The card is downloadable, and kept in `localSto
 runtime and there is no API key; the game loads local PNGs and a missing file costs you that one
 picture rather than the room.
 
+The night around the frame is not an asset. It is three fixed layers of radial gradients in CSS,
+twinkling on separate clocks, with four-point sparkles made from a wide ellipse crossing a tall
+one — nothing to load, only `opacity` animating, and it stops under `prefers-reduced-motion`.
+The ending screen is transparent, so the sky keeps going behind the card.
+
 Re-cut them any time. This needs a dependency, but it is a build-time tool rather than something
 the game loads:
 
