@@ -140,4 +140,36 @@ caught fast.
 
 ## What was learned
 
-*Filled in at the end of the build.*
+**The background decides whether the art works, and it decides it late.** Everything in the
+supplied PNGs is drawn on opaque black, so on a dark sky the sprites looked finished while
+hiding two whole categories of problem: the pouch's interior was a filled black rectangle
+pretending to be transparency, and every "dark detail" inside a sprite — the donut's centre,
+the links of the ball chain, the gap under the parfait's glass foot — was actually the
+background showing through a hole. Moving to pastel blue made all of it visible at once. The
+rule that came out of it is one line long: in this art every enclosed black region is a hole,
+except the pouch's interior, which is the vinyl and becomes a faint tint. Guessing per sprite
+was what produced black blobs; a single rule with one deliberate exception fixed all fourteen.
+
+**A translucent tint is a better see-through than transparency.** Cutting the interior out
+entirely made the pouch read as an empty outline. Twenty per cent of `(214, 238, 255)` over the
+miniatures — drawn underneath — is what makes it read as plastic, because the things inside it
+are very slightly veiled rather than simply framed.
+
+**Personality needs a cap or it eats the pouch.** "Matching neighbours multiply" with no limit
+ends every session the same way: fifteen of whatever the player happened to put down first. Four
+of a kind is enough to feel like a crowd and leaves room for the other eleven miniatures to
+matter.
+
+**The weather is more legible than the rule it replaced.** The protective sparkle was invented
+as a mechanic and read as arbitrary. The same mechanic motivated by the sky — move slowly, the
+blue warms, a star falls and lands on something — is discovered rather than explained, and it
+costs nothing extra: the tempo the sky is already reading is the tempo the star needs.
+
+**Time-based decay, not per-frame lerp.** Both weather values were originally eased a fixed
+fraction each frame, which quietly ties how fast the sky reacts to the frame rate. Exponential
+decay against real elapsed time behaves the same on a good machine and correctly on a bad one —
+and it is the only version that can be tested headlessly at all.
+
+**Diegetic difficulty works, and it needs one honest clock.** Three charms on the keyring
+instead of a difficulty menu was the right call, but with no numbers anywhere the player has
+nothing to plan against. The strap's shadow creeping across the sky is the whole HUD.

@@ -5,9 +5,9 @@
  *
  * The art is a set of static PNGs in assets/, cut from fifteen supplied layer exports by
  * scripts/slice_assets.py. Nothing is fetched from the network and there is no API key.
- * The pouch is drawn with a transparent interior, so the miniatures render underneath it
- * and show through the vinyl, and assets/pouch-inside.json is the same interior as a
- * bitmask — the pouch hangs at an angle, so no rectangle would do.
+ * The pouch's interior is a faint translucent tint rather than a hole, so the miniatures
+ * are drawn underneath it and genuinely show through the vinyl, and assets/pouch-inside.json
+ * is that same interior as a bitmask — the pouch hangs at an angle, so no rectangle would do.
  */
 
 const CONFIG = {
@@ -1109,8 +1109,8 @@ function drawCard(said) {
   const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
   const rgb = (v) => `rgb(${v[0]}, ${v[1]}, ${v[2]})`;
   const heat = Math.min(1, Trace.state.tempo * 1.4);
-  const hi = mix(mix([166, 203, 242], [247, 214, 162], weather.warm * 0.6), [81, 131, 201], heat * 0.48);
-  const lo = mix(mix([220, 237, 255], [255, 240, 208], weather.warm * 0.6), [143, 186, 234], heat * 0.48);
+  const hi = mix(mix([166, 203, 242], [255, 199, 180], weather.warm * 0.52), [81, 131, 201], heat * 0.48);
+  const lo = mix(mix([220, 237, 255], [255, 240, 226], weather.warm * 0.52), [143, 186, 234], heat * 0.48);
 
   const sky = k.createLinearGradient(0, 0, 0, CH);
   sky.addColorStop(0, rgb(hi));
@@ -1254,7 +1254,9 @@ function finish() {
   document.getElementById("reveal-title").textContent = said.traits[0][0];
   document.getElementById("reveal-body").textContent = `${said.traits
     .map(([, line]) => line)
-    .join(". ")}. The pouch kept ${said.kept}, because you decided it should.`;
+    .join(". ")}. What is hanging there now is ${said.pouch}, and it kept ${
+    said.kept
+  }, because you decided it should.`;
   document.getElementById("world").hidden = true;
   document.getElementById("reveal").hidden = false;
   clearTimeout(Hints._timer);

@@ -17,16 +17,17 @@
   --grape: #6f4fb0;
 
   /* Two mixes, one for each end of the sky. Slow hands warm it, fast hands deepen it.
-     The warm end is apricot rather than plain cream: mixing blue towards an off-white
-     passes through grey, and the sky went flat halfway. */
+     The warm end is peach rather than plain cream: blue mixed towards anything yellow
+     passes through grey and the sky goes beige and flat, where a little red in the target
+     keeps it a colour all the way. */
   --sky-hi: color-mix(
     in oklab,
-    color-mix(in oklab, #a6cbf2, #f7d6a2 calc(var(--warm) * 60%)),
+    color-mix(in oklab, #a6cbf2, #ffc7b4 calc(var(--warm) * 52%)),
     #5183c9 calc(var(--tempo) * 48%)
   );
   --sky-lo: color-mix(
     in oklab,
-    color-mix(in oklab, #dcedff, #fff0d0 calc(var(--warm) * 60%)),
+    color-mix(in oklab, #dcedff, #fff0e2 calc(var(--warm) * 52%)),
     #8fbaea calc(var(--tempo) * 48%)
   );
 
@@ -131,9 +132,11 @@ body {
 
 #world {
   position: relative;
-  width: min(96vw, 900px);
+  /* Height as well as width, because the canvas is stretched to the frame: a short wide
+     window would otherwise squash the artwork rather than shrink it. 141svh is 94svh of
+     height at three by two. */
+  width: min(96vw, 900px, 141svh);
   aspect-ratio: 3 / 2;
-  max-height: 94svh;
   /* So the charms' chains can be given a length in cqh and still reach the strap when
      the frame is smaller than 900 wide. */
   container-type: size;
@@ -510,10 +513,12 @@ button {
   gap: 10px;
 }
 
-/* The tag is sized in characters, so it is the one thing that has to shrink with the
-   frame rather than scaling with it. */
+/* The tag is sized in characters, so it is the one thing that has to shrink with the frame
+   rather than scaling with it — which means on a small frame it takes up a bigger share of
+   the sky and has to be slid left, or it hangs over the pouch's mouth. */
 @media (max-width: 720px), (max-height: 620px) {
   #tag {
+    left: 20%;
     width: 19ch;
     padding: 9px 10px 11px;
   }
@@ -521,6 +526,17 @@ button {
   #quest {
     font-size: 11px;
     padding-left: 12px;
+  }
+}
+
+@media (max-width: 560px) {
+  #tag {
+    left: 18%;
+    width: 17ch;
+  }
+
+  #quest {
+    font-size: 10.5px;
   }
 }
 
