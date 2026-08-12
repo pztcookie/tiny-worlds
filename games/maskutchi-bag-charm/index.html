@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Maskutchi Bag Charm</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <!-- The sky outside the frame. Decorative, and drawn entirely in CSS. -->
+    <div id="sky" aria-hidden="true"><i></i><i></i><i></i></div>
+
+    <main id="world" aria-label="A clear zip pouch hanging from a bag strap">
+      <!-- The strap, the pouch, the spill and the bunny all live on one canvas. -->
+      <canvas id="stage" width="900" height="600" aria-label="The pouch, and the miniatures beside it"></canvas>
+
+      <!-- QUEST — on the paper tag tied to the strap. Visible goal, hidden solution. -->
+      <div id="tag"><p id="quest"></p></div>
+
+      <!-- Three charms on the keyring. Picking one starts the world and sets its pace. -->
+      <div id="charms">
+        <button class="charm moon" data-pace="moon" style="--x: 22.2%; --y: 39.3%; --chain: 98px" aria-label="the moon charm">
+          <span></span>
+        </button>
+        <button class="charm star" data-pace="star" style="--x: 36.7%; --y: 44.7%; --chain: 148px" aria-label="the star charm">
+          <span></span>
+        </button>
+        <button class="charm spark" data-pace="spark" style="--x: 51.1%; --y: 37%; --chain: 119px" aria-label="the spark charm">
+          <span></span>
+        </button>
+      </div>
+
+      <!-- The world speaking. Never a tooltip, never a tutorial. -->
+      <p id="whisper" aria-live="polite"></p>
+
+      <button id="finish" hidden>zip it shut</button>
+    </main>
+
+    <!-- REFLECT + TAKE HOME -->
+    <section id="reveal" hidden>
+      <h1 id="reveal-title"></h1>
+      <p id="reveal-body"></p>
+      <canvas id="card" width="600" height="800" aria-label="Your pouch, to keep"></canvas>
+      <div class="reveal-actions">
+        <button id="download">keep it</button>
+        <button id="again">pack another</button>
+      </div>
+    </section>
+
+    <script src="game.js"></script>
+  </body>
+</html>

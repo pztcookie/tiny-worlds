@@ -1,0 +1,532 @@
+/* Maskutchi Bag Charm. A pastel blue sky with small shining stars, and one clear pouch
+   hanging in it. The weather is not decoration: --tempo is how fast the player's hand is
+   moving right now and --warm is how long they have kept it slow, both written from JS,
+   and between them they set the colour of the sky, how hard the stars twinkle and whether
+   they streak. */
+
+:root {
+  --tempo: 0; /* 0 = a still hand, 1 = as fast as the world reads */
+  --warm: 0; /* 0 = plain blue, 1 = the blue has gone cream */
+
+  --ink: #38477a;
+  --ink-dim: #7286b5;
+  --paper: #fdf4dd;
+  --moon: #fff0bd;
+  --star: #ffe27a;
+  --spark: #a9e8ff;
+  --grape: #6f4fb0;
+
+  /* Two mixes, one for each end of the sky. Slow hands warm it, fast hands deepen it. */
+  --sky-hi: color-mix(
+    in oklab,
+    color-mix(in oklab, #a6cbf2, #f8ecd4 calc(var(--warm) * 62%)),
+    #5183c9 calc(var(--tempo) * 48%)
+  );
+  --sky-lo: color-mix(
+    in oklab,
+    color-mix(in oklab, #dcedff, #fdf6e7 calc(var(--warm) * 62%)),
+    #8fbaea calc(var(--tempo) * 48%)
+  );
+
+  --font: ui-monospace, "SF Mono", Menlo, monospace;
+  --radius: 12px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(var(--sky-hi), var(--sky-lo));
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.6;
+  overflow: hidden;
+  transition: background 1.4s ease;
+}
+
+/* ---------- the sky ----------
+   Stars are radial gradients on three fixed layers rather than elements or images:
+   nothing to load, nothing running per frame, and only opacity and transform animate.
+   Each layer twinkles on its own clock so they never all blink together, and the whole
+   set stretches vertically as the hand speeds up, which is what turns them into streaks. */
+
+#sky,
+#sky i {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-repeat: no-repeat;
+}
+
+#sky {
+  z-index: 0;
+  scale: 1 calc(1 + var(--tempo) * 1.9);
+  transition: scale 0.9s ease;
+}
+
+#sky i {
+  display: block;
+  animation: twinkle calc(6s - var(--tempo) * 4s) ease-in-out infinite;
+}
+
+/* Four-point sparkles, made from a wide ellipse crossing a tall one, plus round stars. */
+#sky i:nth-child(1) {
+  background-image:
+    radial-gradient(ellipse 9px 1px at 18% 12%, #fff, transparent),
+    radial-gradient(ellipse 1px 9px at 18% 12%, #fff, transparent),
+    radial-gradient(ellipse 7px 1px at 84% 22%, var(--moon), transparent),
+    radial-gradient(ellipse 1px 7px at 84% 22%, var(--moon), transparent),
+    radial-gradient(circle at 7% 34%, #fff 0 1.6px, transparent 2.4px),
+    radial-gradient(circle at 31% 61%, #fff 0 1.2px, transparent 1.9px),
+    radial-gradient(circle at 62% 8%, var(--moon) 0 1.4px, transparent 2.2px),
+    radial-gradient(circle at 93% 71%, #fff 0 1.3px, transparent 2px),
+    radial-gradient(circle at 47% 88%, #fff 0 1.1px, transparent 1.8px);
+}
+
+#sky i:nth-child(2) {
+  animation-delay: 1.7s;
+  background-image:
+    radial-gradient(ellipse 8px 1px at 66% 78%, #fff, transparent),
+    radial-gradient(ellipse 1px 8px at 66% 78%, #fff, transparent),
+    radial-gradient(circle at 12% 76%, #fff 0 1.4px, transparent 2.2px),
+    radial-gradient(circle at 24% 19%, var(--moon) 0 1.2px, transparent 1.9px),
+    radial-gradient(circle at 41% 41%, #fff 0 1.5px, transparent 2.3px),
+    radial-gradient(circle at 73% 54%, #fff 0 1.1px, transparent 1.8px),
+    radial-gradient(circle at 88% 12%, #fff 0 1.3px, transparent 2px),
+    radial-gradient(circle at 96% 44%, var(--moon) 0 1.2px, transparent 1.9px);
+}
+
+#sky i:nth-child(3) {
+  animation-delay: 3.4s;
+  background-image:
+    radial-gradient(ellipse 10px 1px at 39% 27%, #fff, transparent),
+    radial-gradient(ellipse 1px 10px at 39% 27%, #fff, transparent),
+    radial-gradient(circle at 4% 54%, #fff 0 1.2px, transparent 1.9px),
+    radial-gradient(circle at 17% 92%, #fff 0 1.4px, transparent 2.2px),
+    radial-gradient(circle at 54% 68%, var(--moon) 0 1.3px, transparent 2px),
+    radial-gradient(circle at 79% 33%, #fff 0 1.5px, transparent 2.3px),
+    radial-gradient(circle at 91% 87%, #fff 0 1.1px, transparent 1.8px),
+    radial-gradient(circle at 68% 96%, #fff 0 1.3px, transparent 2px);
+}
+
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0.34;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* ---------- the frame ---------- */
+
+#world {
+  position: relative;
+  width: min(96vw, 900px);
+  aspect-ratio: 3 / 2;
+  max-height: 94svh;
+  border-radius: var(--radius);
+  background: linear-gradient(var(--sky-hi), var(--sky-lo));
+  box-shadow:
+    0 18px 50px rgb(56 71 122 / 0.22),
+    inset 0 0 0 1px rgb(255 255 255 / 0.5);
+  overflow: hidden;
+  transition: background 1.4s ease;
+}
+
+/* The same stars again, inside the frame, so the pouch hangs in the sky rather than in
+   front of a flat panel. Fainter, because the artwork has to stay legible over them. */
+#world::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-repeat: no-repeat;
+  background-image:
+    radial-gradient(ellipse 11px 1px at 12% 18%, #fff, transparent),
+    radial-gradient(ellipse 1px 11px at 12% 18%, #fff, transparent),
+    radial-gradient(ellipse 8px 1px at 88% 62%, var(--moon), transparent),
+    radial-gradient(ellipse 1px 8px at 88% 62%, var(--moon), transparent),
+    radial-gradient(circle at 6% 48%, #fff 0 1.7px, transparent 2.6px),
+    radial-gradient(circle at 21% 82%, #fff 0 1.3px, transparent 2px),
+    radial-gradient(circle at 34% 9%, var(--moon) 0 1.5px, transparent 2.3px),
+    radial-gradient(circle at 58% 31%, #fff 0 1.2px, transparent 1.9px),
+    radial-gradient(circle at 71% 88%, #fff 0 1.4px, transparent 2.2px),
+    radial-gradient(circle at 94% 26%, #fff 0 1.6px, transparent 2.4px),
+    radial-gradient(circle at 82% 8%, #fff 0 1.2px, transparent 1.9px),
+    radial-gradient(circle at 46% 58%, #fff 0 1.3px, transparent 2px);
+  animation: twinkle-faint calc(7.5s - var(--tempo) * 4.5s) ease-in-out 0.6s infinite;
+  scale: 1 calc(1 + var(--tempo) * 1.4);
+  transition: scale 0.9s ease;
+}
+
+@keyframes twinkle-faint {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.92;
+  }
+}
+
+#stage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* Dragging a charm around must not scroll the page on a phone. */
+  touch-action: none;
+}
+
+/* ---------- the paper tag ---------- */
+
+/* Tied to the strap, and the only place in the world that uses words. */
+#tag {
+  position: absolute;
+  left: 34%;
+  top: 22%;
+  width: 23ch;
+  padding: 12px 14px 14px;
+  border-radius: 4px 4px 7px 7px;
+  background: linear-gradient(170deg, var(--paper), #f3e6c8);
+  box-shadow: 0 5px 14px rgb(56 71 122 / 0.24);
+  rotate: -3.5deg;
+  pointer-events: none;
+  transition: rotate 0.8s ease;
+}
+
+/* The string, and the hole it goes through. */
+#tag::before {
+  content: "";
+  position: absolute;
+  left: 22px;
+  bottom: 100%;
+  width: 1px;
+  height: 42px;
+  background: linear-gradient(rgb(56 71 122 / 0.1), rgb(56 71 122 / 0.55));
+}
+
+#tag::after {
+  content: "";
+  position: absolute;
+  left: 18px;
+  top: 5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--sky-hi), #b9a887 60%);
+}
+
+#quest {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  color: #6a5a3c;
+}
+
+/* A rung of the ladder, rather than the quest. */
+#tag.hinting {
+  rotate: 1.5deg;
+}
+
+#tag.hinting #quest {
+  color: var(--grape);
+}
+
+/* ---------- the pace charms ---------- */
+
+.charm {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  translate: -50% -50%;
+  transform-origin: 50% calc(-1 * var(--chain));
+  animation: charm-swing 4.2s ease-in-out infinite;
+}
+
+.charm:nth-child(2) {
+  animation-duration: 5.1s;
+  animation-delay: -1.2s;
+}
+
+.charm:nth-child(3) {
+  animation-duration: 3.6s;
+  animation-delay: -2.4s;
+}
+
+/* The chain it hangs on, up to the strap. */
+.charm::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  width: 1px;
+  height: var(--chain);
+  background: linear-gradient(rgb(56 71 122 / 0.15), rgb(56 71 122 / 0.6));
+}
+
+.charm span {
+  position: absolute;
+  inset: 0;
+  filter: drop-shadow(0 0 5px rgb(255 255 255 / 0.9)) drop-shadow(0 2px 3px rgb(56 71 122 / 0.35));
+  transition:
+    scale 0.4s ease,
+    filter 0.4s ease;
+}
+
+.charm.moon span {
+  border-radius: 50%;
+  background: radial-gradient(circle at 132% 50%, transparent 61%, var(--moon) 62%);
+}
+
+.charm.star span {
+  background: var(--star);
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+
+.charm.spark span {
+  background: var(--spark);
+  clip-path: polygon(50% 0%, 58% 42%, 100% 50%, 58% 58%, 50% 100%, 42% 58%, 0% 50%, 42% 42%);
+}
+
+.charm:hover span,
+.charm:focus-visible span {
+  scale: 1.18;
+}
+
+.charm:focus-visible {
+  outline: none;
+}
+
+.charm:focus-visible span {
+  filter: drop-shadow(0 0 9px #fff) drop-shadow(0 0 4px var(--grape));
+}
+
+/* Nobody has touched anything yet, so the charms make themselves obvious. */
+#charms.flare span {
+  animation: charm-flare 1.5s ease-in-out 3;
+}
+
+/* The one they chose stays on the strap and keeps time with the weather. */
+.charm.chosen {
+  cursor: default;
+  animation-duration: calc(4.2s - var(--tempo) * 2.6s);
+}
+
+.charm.chosen span {
+  scale: 0.8;
+}
+
+.charm.spent {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.9s ease;
+}
+
+@keyframes charm-swing {
+  0%,
+  100% {
+    rotate: -4deg;
+  }
+  50% {
+    rotate: 4deg;
+  }
+}
+
+@keyframes charm-flare {
+  50% {
+    scale: 1.3;
+    filter: drop-shadow(0 0 12px #fff) drop-shadow(0 0 6px var(--star));
+  }
+}
+
+/* ---------- the world speaking ---------- */
+
+#whisper {
+  position: absolute;
+  inset: auto 0 16px;
+  margin: 0;
+  text-align: center;
+  min-height: 1.6em;
+  color: var(--grape);
+  font-size: 13.5px;
+  opacity: 0;
+  translate: 0 6px;
+  transition:
+    opacity 0.45s ease,
+    translate 0.45s ease;
+  pointer-events: none;
+}
+
+#whisper.showing {
+  opacity: 1;
+  translate: 0 0;
+}
+
+/* A hint the world offers when the player goes quiet. It is shy: move toward one and it
+   darts away, and a quarter of them lose their nerve on their own. */
+.hint {
+  position: absolute;
+  translate: -50% -50%;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.92);
+  color: var(--grape);
+  box-shadow: 0 2px 10px rgb(56 71 122 / 0.22);
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  animation: hint-in 0.5s ease forwards;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.hint.spooked {
+  animation: hint-out 0.4s ease forwards;
+}
+
+@keyframes hint-in {
+  to {
+    opacity: 1;
+    translate: -50% -160%;
+  }
+}
+
+@keyframes hint-out {
+  to {
+    opacity: 0;
+    translate: -50% -320%;
+  }
+}
+
+@keyframes fade-in {
+  to {
+    opacity: 1;
+  }
+}
+
+/* ---------- buttons ---------- */
+
+button {
+  font: inherit;
+  color: var(--ink);
+}
+
+#finish,
+.reveal-actions button {
+  padding: 8px 17px;
+  border: 1px solid rgb(56 71 122 / 0.3);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.5);
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition:
+    background 0.3s ease,
+    border-color 0.3s ease;
+}
+
+#finish {
+  position: absolute;
+  inset: auto 16px 16px auto;
+  font-size: 13px;
+  opacity: 0;
+  animation: fade-in 0.7s ease forwards;
+}
+
+#finish:hover,
+.reveal-actions button:hover {
+  background: #fff;
+  border-color: var(--grape);
+}
+
+/* ---------- reveal ---------- */
+
+/* Transparent, so the sky and its stars keep going behind the card. */
+#reveal {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  padding: 22px;
+  background: transparent;
+  overflow: auto;
+  opacity: 0;
+  animation: fade-in 0.9s ease forwards;
+  z-index: 4;
+}
+
+#reveal[hidden] {
+  display: none;
+}
+
+#reveal-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+
+#reveal-body {
+  margin: 0;
+  max-width: 46ch;
+  text-align: center;
+  color: var(--ink-dim);
+}
+
+#card {
+  width: min(72vw, 292px);
+  height: auto;
+  border-radius: var(--radius);
+  box-shadow: 0 16px 44px rgb(56 71 122 / 0.32);
+}
+
+.reveal-actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* The tag is sized in characters, so it is the one thing that has to shrink with the
+   frame rather than scaling with it. */
+@media (max-width: 720px), (max-height: 620px) {
+  #tag {
+    width: 19ch;
+    padding: 9px 10px 11px;
+  }
+
+  #quest {
+    font-size: 11px;
+    padding-left: 12px;
+  }
+
+  .charm {
+    width: 30px;
+    height: 30px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
