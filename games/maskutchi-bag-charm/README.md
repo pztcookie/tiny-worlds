@@ -111,8 +111,9 @@ arrangement, zipped, in the weather your own hand produced. The trace is kept in
 
 Fifteen supplied 791×1024 PNGs in `assets/source/`, per-layer exports of one composition on an
 opaque black background rather than on transparency, cut by `scripts/slice_assets.py` into
-fourteen sprites and one bitmask. 479 KiB of sliced art, 252 KiB of which is the pouch, plus
-268 KiB of sources that ship for re-cutting but are never loaded. Nothing is fetched at
+fourteen sprites and one bitmask. 479 KiB of sliced art, 245 KiB of which is the pouch, plus
+237 KiB of sources that ship for re-cutting but are never loaded — 716 KiB of `assets/` in
+total, of which the game loads 479 KiB. Nothing is fetched at
 runtime and there is no API key; a missing file costs you that one picture rather than the
 room.
 
