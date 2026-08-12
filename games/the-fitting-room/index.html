@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>The Fitting Room</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main id="world" aria-label="A fitting room">
+      <!-- QUEST — stencilled above the curtain rail. Visible goal, hidden solution. -->
+      <p id="quest"></p>
+
+      <div id="stage">
+        <div class="panel" id="cubicle-wrap">
+          <canvas id="cubicle" width="360" height="420" aria-label="The cubicle"></canvas>
+          <button id="body" aria-label="Take off what you are wearing"></button>
+        </div>
+
+        <div class="panel" id="mirror-wrap">
+          <canvas id="mirror" width="288" height="384" aria-label="The mirror"></canvas>
+          <button id="peer" aria-label="Lean closer to the mirror"></button>
+        </div>
+
+        <!-- PLAY — the rail. Filled from GARMENTS. -->
+        <div id="rail" aria-label="The rail"></div>
+      </div>
+
+      <p id="whisper" aria-live="polite"></p>
+
+      <button id="finish" hidden>step out</button>
+    </main>
+
+    <!-- REFLECT + TAKE HOME -->
+    <section id="reveal" hidden>
+      <h1 id="reveal-title"></h1>
+      <p id="reveal-body"></p>
+      <canvas id="card" width="600" height="800" aria-label="Your card"></canvas>
+      <div class="reveal-actions">
+        <button id="download">keep it</button>
+        <button id="again">stay a while longer</button>
+      </div>
+    </section>
+
+    <script src="game.js"></script>
+  </body>
+</html>
