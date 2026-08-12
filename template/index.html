@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>A Tiny World</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <!-- ENTER — the world introduces itself, briefly, then gets out of the way. -->
+    <main id="world" aria-label="A tiny world">
+      <!-- QUEST — visible goal, hidden solution. -->
+      <p id="quest">make the room feel like it knows you</p>
+
+      <!-- PLAY — replace these with the objects of your world. -->
+      <div id="stage">
+        <button class="thing" data-thing="lamp" style="--x: 22%; --y: 34%"></button>
+        <button class="thing" data-thing="jar" style="--x: 48%; --y: 58%"></button>
+        <button class="thing" data-thing="plant" style="--x: 72%; --y: 30%"></button>
+        <button class="thing" data-thing="rug" style="--x: 35%; --y: 74%"></button>
+        <button class="thing" data-thing="window" style="--x: 80%; --y: 66%"></button>
+      </div>
+
+      <!-- The world speaks here. Never a tooltip, never a tutorial. -->
+      <p id="whisper" aria-live="polite"></p>
+
+      <button id="finish" hidden>let the room settle</button>
+    </main>
+
+    <!-- REFLECT + TAKE HOME -->
+    <section id="reveal" hidden>
+      <h1 id="reveal-title"></h1>
+      <p id="reveal-body"></p>
+      <canvas id="card" width="600" height="800" aria-label="Your card"></canvas>
+      <div class="reveal-actions">
+        <button id="download">keep it</button>
+        <button id="again">stay a while longer</button>
+      </div>
+    </section>
+
+    <script src="game.js"></script>
+  </body>
+</html>

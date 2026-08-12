@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Moonlit Sandwich Cafe</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- ENTER -->
+    <section id="screen-enter" class="screen active">
+      <div class="enter-stage">
+        <img
+          class="enter-art"
+          src="assets/01-day-night-confusion-cafe-intro.png"
+          alt="A cozy sandwich cafe where day and night share one window"
+        />
+        <div class="enter-veil">
+          <p class="eyebrow">a tiny cafe between day &amp; night</p>
+          <h1>Moonlit<br />Sandwich Cafe</h1>
+          <p class="enter-blurb">Different parts of you can sit at the same table.</p>
+          <button id="btn-enter" class="btn primary">Push open the door</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- QUEST -->
+    <section id="screen-quest" class="screen">
+      <div class="quest-card">
+        <img class="quest-thumb" src="assets/05-secret-pocket-bread.png" alt="" />
+        <h2>The cafe is hungry for something honest.</h2>
+        <p>
+          Compose a sandwich that feels like <em>home</em> —
+          not the perfect one, the one that lets your pieces coexist.
+        </p>
+        <p class="whisper">The pantry is small tonight. The kitchen will react.</p>
+        <button id="btn-start" class="btn primary">Step behind the counter</button>
+      </div>
+    </section>
+
+    <!-- PLAY -->
+    <section id="screen-play" class="screen">
+      <header class="play-top">
+        <div class="goal-pill">
+          <span class="goal-dot"></span>
+          Make a sandwich that feels like home
+        </div>
+        <p id="cafe-whisper" class="cafe-whisper">The window holds both sunset and moon… curious.</p>
+      </header>
+
+      <div class="play-grid">
+        <aside class="cafe-corner">
+          <div class="cafe-scene" id="cafe-scene">
+            <img
+              class="cafe-bg"
+              src="assets/01-day-night-confusion-cafe-intro.png"
+              alt="Cafe interior"
+            />
+            <button class="hotspot" id="hot-jar" title="A tiny world in a jar" style="left:72%; top:18%;">
+              <img src="assets/09-tiny-world-jar.png" alt="Tiny world jar" />
+            </button>
+            <button class="hotspot hidden" id="hot-box" title="A keepsake box" style="left:8%; top:62%;">
+              <img src="assets/07-tiny-memory-box.png" alt="Memory box" />
+            </button>
+            <button class="hotspot hidden" id="hot-key" title="A star key" style="left:42%; top:48%;">
+              <img src="assets/08-impossible-star-key.png" alt="Star key" />
+            </button>
+            <div id="sparkle-layer" class="sparkle-layer" aria-hidden="true"></div>
+          </div>
+          <p id="object-note" class="object-note">Tap the jar… something seems tucked nearby.</p>
+        </aside>
+
+        <main class="counter">
+          <div class="tray-title-row">
+            <p class="tray-title">Bread</p>
+            <p class="tray-hint">stack as many as you like</p>
+          </div>
+          <div class="tray breads" id="bread-tray"></div>
+
+          <div class="board" id="board">
+            <div class="board-empty" id="board-empty">
+              <p>Start with bread</p>
+              <span>then stack what calls to you</span>
+            </div>
+            <canvas id="sandwich-canvas" class="sandwich-canvas" width="640" height="640" aria-label="Your sandwich in progress" title="poke it"></canvas>
+          </div>
+
+          <div class="tray-title-row">
+            <p class="tray-title">Pantry</p>
+            <p class="tray-hint" id="layer-count">0 / 8 layers</p>
+          </div>
+          <div class="tray" id="ingredient-tray"></div>
+
+          <div id="curio-group" class="hidden">
+            <div class="tray-title-row">
+              <p class="tray-title">Curios</p>
+              <p class="tray-hint">things you found in the room</p>
+            </div>
+            <div class="tray curios" id="curio-tray"></div>
+          </div>
+
+          <div class="actions">
+            <button id="btn-undo" class="btn ghost" disabled>Undo layer</button>
+            <button id="btn-clear" class="btn ghost" disabled>Clear</button>
+            <button id="btn-serve" class="btn primary" disabled>Serve it</button>
+          </div>
+        </main>
+      </div>
+    </section>
+
+    <!-- TAKE HOME -->
+    <section id="screen-end" class="screen">
+      <div class="end-wrap">
+        <div class="artifact">
+          <div class="artifact-frame">
+            <img id="artifact-img" src="" alt="Your sandwich" />
+            <div id="blend-loading" class="blend-loading hidden">
+              <span class="oven-glow"></span>
+              <p>the oven is thinking…</p>
+            </div>
+          </div>
+          <div class="artifact-meta">
+            <p class="eyebrow" id="artifact-tag">your take-home</p>
+            <h2 id="artifact-title">Untitled Sandwich</h2>
+            <p id="artifact-layers" class="layers-line"></p>
+            <div id="trait-row" class="trait-row"></div>
+            <p id="inner-world" class="inner-world"></p>
+            <blockquote id="artifact-reflect"></blockquote>
+            <p id="artifact-secret" class="secret-line hidden"></p>
+
+            <div id="view-toggle" class="view-toggle hidden">
+              <button class="chip active" data-view="stack">Your stack</button>
+              <button class="chip" data-view="blend">Melted together</button>
+            </div>
+            <p id="oven-note" class="oven-note hidden"></p>
+
+            <div class="end-actions">
+              <button id="btn-blend" class="btn primary">Put it in the oven</button>
+              <button id="btn-download" class="btn ghost">Download</button>
+              <button id="btn-again" class="btn ghost">Compose another</button>
+            </div>
+            <p id="saved-note" class="saved-note">Kept in this browser — it's yours.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div id="nudge-layer" class="nudge-layer" aria-hidden="true"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="game.js"></script>
+</body>
+</html>

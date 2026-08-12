@@ -1,0 +1,197 @@
+{
+  "bread-white-a": {
+    "file": "assets/ingredients/bread-white-a.png",
+    "w": 231,
+    "h": 155
+  },
+  "bread-wheat-a": {
+    "file": "assets/ingredients/bread-wheat-a.png",
+    "w": 229,
+    "h": 155
+  },
+  "baguette-whole": {
+    "file": "assets/ingredients/baguette-whole.png",
+    "w": 219,
+    "h": 153
+  },
+  "pita-plain": {
+    "file": "assets/ingredients/pita-plain.png",
+    "w": 232,
+    "h": 140
+  },
+  "naan-plain": {
+    "file": "assets/ingredients/naan-plain.png",
+    "w": 253,
+    "h": 154
+  },
+  "bao-top": {
+    "file": "assets/ingredients/bao-top.png",
+    "w": 218,
+    "h": 158
+  },
+  "bread-white": {
+    "file": "assets/ingredients/bread-white.png",
+    "w": 231,
+    "h": 155
+  },
+  "bread-wheat": {
+    "file": "assets/ingredients/bread-wheat.png",
+    "w": 236,
+    "h": 150
+  },
+  "baguette": {
+    "file": "assets/ingredients/baguette.png",
+    "w": 218,
+    "h": 143
+  },
+  "pita": {
+    "file": "assets/ingredients/pita.png",
+    "w": 227,
+    "h": 138
+  },
+  "naan": {
+    "file": "assets/ingredients/naan.png",
+    "w": 250,
+    "h": 139
+  },
+  "bao": {
+    "file": "assets/ingredients/bao.png",
+    "w": 216,
+    "h": 143
+  },
+  "lettuce": {
+    "file": "assets/ingredients/lettuce.png",
+    "w": 171,
+    "h": 138
+  },
+  "tomato": {
+    "file": "assets/ingredients/tomato.png",
+    "w": 154,
+    "h": 138
+  },
+  "cucumber": {
+    "file": "assets/ingredients/cucumber.png",
+    "w": 155,
+    "h": 133
+  },
+  "avocado": {
+    "file": "assets/ingredients/avocado.png",
+    "w": 160,
+    "h": 140
+  },
+  "onion": {
+    "file": "assets/ingredients/onion.png",
+    "w": 156,
+    "h": 129
+  },
+  "radish": {
+    "file": "assets/ingredients/radish.png",
+    "w": 133,
+    "h": 126
+  },
+  "pepper": {
+    "file": "assets/ingredients/pepper.png",
+    "w": 152,
+    "h": 122
+  },
+  "cabbage": {
+    "file": "assets/ingredients/cabbage.png",
+    "w": 131,
+    "h": 130
+  },
+  "shiso": {
+    "file": "assets/ingredients/shiso.png",
+    "w": 124,
+    "h": 139
+  },
+  "nori": {
+    "file": "assets/ingredients/nori.png",
+    "w": 147,
+    "h": 145
+  },
+  "egg": {
+    "file": "assets/ingredients/egg.png",
+    "w": 200,
+    "h": 139
+  },
+  "cheese": {
+    "file": "assets/ingredients/cheese.png",
+    "w": 196,
+    "h": 145
+  },
+  "tofu-fried": {
+    "file": "assets/ingredients/tofu-fried.png",
+    "w": 183,
+    "h": 148
+  },
+  "tofu": {
+    "file": "assets/ingredients/tofu.png",
+    "w": 175,
+    "h": 146
+  },
+  "beans": {
+    "file": "assets/ingredients/beans.png",
+    "w": 190,
+    "h": 141
+  },
+  "mayo": {
+    "file": "assets/ingredients/mayo.png",
+    "w": 146,
+    "h": 120
+  },
+  "mustard": {
+    "file": "assets/ingredients/mustard.png",
+    "w": 145,
+    "h": 120
+  },
+  "pesto": {
+    "file": "assets/ingredients/pesto.png",
+    "w": 155,
+    "h": 120
+  },
+  "chili": {
+    "file": "assets/ingredients/chili.png",
+    "w": 159,
+    "h": 120
+  },
+  "spicy": {
+    "file": "assets/ingredients/spicy.png",
+    "w": 157,
+    "h": 117
+  },
+  "herb-cream": {
+    "file": "assets/ingredients/herb-cream.png",
+    "w": 156,
+    "h": 119
+  },
+  "hummus": {
+    "file": "assets/ingredients/hummus.png",
+    "w": 167,
+    "h": 126
+  },
+  "galaxy": {
+    "file": "assets/ingredients/galaxy.png",
+    "w": 153,
+    "h": 126
+  },
+  "finished-classic": {
+    "file": "assets/ingredients/finished-classic.png",
+    "w": 381,
+    "h": 296
+  },
+  "finished-sub": {
+    "file": "assets/ingredients/finished-sub.png",
+    "w": 364,
+    "h": 281
+  },
+  "finished-magic": {
+    "file": "assets/ingredients/finished-magic.png",
+    "w": 404,
+    "h": 282
+  },
+  "crystals": {
+    "file": "assets/ingredients/crystals.png",
+    "w": 351,
+    "h": 197
+  }
+}

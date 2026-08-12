@@ -1,0 +1,278 @@
+/* The world's visual language lives here. Replace the palette first — everything else
+   reads from these variables. --warmth is driven from JS and is how the room transforms. */
+
+:root {
+  --warmth: 0; /* 0 = the room as you found it, 1 = the room after you */
+
+  --ink: #f3ece2;
+  --ink-dim: #9c9384;
+  --night: #14121b;
+  --dawn: #2b2438;
+  --glow: #ffd98a;
+  --accent: #b98cff;
+
+  --bg: color-mix(in oklab, var(--night), var(--dawn) calc(var(--warmth) * 100%));
+
+  --font: ui-monospace, "SF Mono", Menlo, monospace;
+  --radius: 10px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.6;
+  overflow: hidden;
+  transition: background 1.2s ease;
+}
+
+/* ---------- world ---------- */
+
+#world {
+  position: relative;
+  width: min(94vw, 900px);
+  height: min(88svh, 620px);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(
+      120% 90% at 50% 8%,
+      color-mix(in oklab, var(--glow) calc(var(--warmth) * 26%), transparent),
+      transparent 60%
+    ),
+    color-mix(in oklab, var(--night), var(--dawn) calc(var(--warmth) * 70%));
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--ink) 12%, transparent);
+  transition: background 1.2s ease;
+}
+
+#quest {
+  position: absolute;
+  inset: 26px 0 auto;
+  margin: 0;
+  text-align: center;
+  color: var(--ink-dim);
+  letter-spacing: 0.06em;
+  pointer-events: none;
+}
+
+#stage {
+  position: absolute;
+  inset: 0;
+}
+
+/* ---------- things ---------- */
+
+.thing {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: 46px;
+  height: 46px;
+  translate: -50% -50%;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  background: radial-gradient(
+    circle at 38% 34%,
+    color-mix(in oklab, var(--glow) calc(20% + var(--life, 0) * 60%), var(--dawn)),
+    color-mix(in oklab, var(--night) 70%, var(--accent))
+  );
+  box-shadow: 0 0 calc(6px + var(--life, 0) * 26px)
+    color-mix(in oklab, var(--glow) calc(var(--life, 0) * 70%), transparent);
+  scale: calc(0.86 + var(--life, 0) * 0.3);
+  transition:
+    scale 0.5s cubic-bezier(0.22, 1.4, 0.4, 1),
+    box-shadow 0.6s ease,
+    background 0.6s ease,
+    left 0.7s ease,
+    top 0.7s ease;
+}
+
+.thing:hover {
+  scale: calc(0.95 + var(--life, 0) * 0.3);
+}
+
+.thing:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 6px;
+}
+
+.thing.stirred {
+  animation: stir 0.5s ease;
+}
+
+.thing.blooming {
+  background: radial-gradient(circle at 40% 36%, #fff, var(--accent));
+  box-shadow: 0 0 46px var(--accent);
+}
+
+@keyframes stir {
+  30% {
+    translate: -50% -62%;
+    rotate: -7deg;
+  }
+  60% {
+    translate: -50% -44%;
+    rotate: 5deg;
+  }
+}
+
+/* ---------- the world speaking ---------- */
+
+#whisper {
+  position: absolute;
+  inset: auto 0 66px;
+  margin: 0;
+  text-align: center;
+  min-height: 1.6em;
+  color: color-mix(in oklab, var(--glow) 70%, var(--ink));
+  opacity: 0;
+  translate: 0 6px;
+  transition:
+    opacity 0.45s ease,
+    translate 0.45s ease;
+  pointer-events: none;
+}
+
+#whisper.showing {
+  opacity: 1;
+  translate: 0 0;
+}
+
+/* A hint the world offers when you go quiet. It is shy: approach it and it leaves. */
+.hint {
+  position: absolute;
+  translate: -50% -50%;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--night) 76%, transparent);
+  color: var(--glow);
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  animation: hint-in 0.5s ease forwards;
+  pointer-events: none;
+}
+
+.hint.spooked {
+  animation: hint-out 0.4s ease forwards;
+}
+
+@keyframes hint-in {
+  to {
+    opacity: 0.9;
+    translate: -50% -160%;
+  }
+}
+
+@keyframes hint-out {
+  to {
+    opacity: 0;
+    translate: -50% -320%;
+  }
+}
+
+@keyframes fade-in {
+  to {
+    opacity: 1;
+  }
+}
+
+/* ---------- buttons ---------- */
+
+button {
+  font: inherit;
+  color: var(--ink);
+}
+
+#finish,
+.reveal-actions button {
+  padding: 9px 18px;
+  border: 1px solid color-mix(in oklab, var(--ink) 28%, transparent);
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition:
+    background 0.3s ease,
+    border-color 0.3s ease;
+}
+
+#finish {
+  position: absolute;
+  inset: auto 0 22px;
+  margin: 0 auto;
+  width: max-content;
+  opacity: 0;
+  animation: fade-in 0.7s ease forwards;
+}
+
+#finish:hover,
+.reveal-actions button:hover {
+  background: color-mix(in oklab, var(--glow) 16%, transparent);
+  border-color: var(--glow);
+}
+
+/* ---------- reveal ---------- */
+
+#reveal {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 14px;
+  padding: 24px;
+  background: var(--bg);
+  overflow: auto;
+  opacity: 0;
+  animation: fade-in 0.9s ease forwards;
+}
+
+#reveal[hidden] {
+  display: none;
+}
+
+#reveal-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+
+#reveal-body {
+  margin: 0;
+  max-width: 46ch;
+  text-align: center;
+  color: var(--ink-dim);
+}
+
+#card {
+  width: min(78vw, 300px);
+  height: auto;
+  border-radius: var(--radius);
+  box-shadow: 0 18px 50px rgb(0 0 0 / 0.5);
+}
+
+.reveal-actions {
+  display: flex;
+  gap: 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
