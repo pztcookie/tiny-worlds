@@ -1,0 +1,5475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>The Little Monster in the Room</title>
+  <style>
+    :root {
+      --wall-top: #c8ddf0;
+      --wall-bot: #b5d0e8;
+      --floor: #c4a484;
+      --floor-board: #b8956f;
+      --soft: #f7ebe3;
+      --shadow: rgba(90, 60, 40, 0.18);
+      --text: #5a4638;
+      --sky-top: #b8d4e8;
+      --sky-bot: #f2e2c4;
+      --light-wash: rgba(255, 236, 210, 0);
+      --mood-tint: rgba(255, 200, 160, 0);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #2a221c;
+      font-family: "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+      color: var(--text);
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html.ui-scrollable,
+    html.ui-scrollable body {
+      touch-action: manipulation;
+    }
+
+    #stage {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(ellipse at 50% 30%, #3d3228 0%, #1e1814 70%);
+      transition: background 0.9s ease;
+    }
+
+    #stage.journey-soft {
+      background: radial-gradient(ellipse at 50% 30%, #4a3a32 0%, #241c18 70%);
+    }
+    #stage.journey-ordered {
+      background: radial-gradient(ellipse at 50% 30%, #353028 0%, #1a1612 70%);
+    }
+    #stage.journey-wonder {
+      background: radial-gradient(ellipse at 50% 28%, #3d3540 0%, #1c1820 70%);
+    }
+    #stage.journey-tender {
+      background: radial-gradient(ellipse at 50% 30%, #4a3834 0%, #201816 70%);
+    }
+
+    #room {
+      position: relative;
+      width: min(920px, 96vw);
+      height: min(620px, 88vh);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow:
+        0 30px 80px rgba(0, 0, 0, 0.45),
+        inset 0 0 0 3px rgba(255, 255, 255, 0.08),
+        inset 0 0 90px var(--inner-glow, transparent);
+      background:
+        linear-gradient(180deg, var(--wall-top) 0%, var(--wall-bot) 58%, var(--floor) 58%, var(--floor-board) 100%);
+      transition: filter 0.55s ease, box-shadow 0.55s ease, background 0.55s ease;
+      filter: saturate(var(--sat, 1)) brightness(var(--bright, 1)) contrast(var(--contrast, 1)) hue-rotate(var(--hue, 0deg));
+    }
+
+    /* Photo-panel clone of the room — size is set in JS to match the live room */
+    .room-shot {
+      position: absolute;
+      top: 0;
+      left: 0;
+      margin: 0;
+      border-radius: 12px;
+      overflow: hidden;
+      pointer-events: none;
+      transform-origin: top left;
+      box-shadow: none;
+      background:
+        linear-gradient(180deg, var(--wall-top) 0%, var(--wall-bot) 58%, var(--floor) 58%, var(--floor-board) 100%);
+      filter: saturate(var(--sat, 1)) brightness(var(--bright, 1)) contrast(var(--contrast, 1)) hue-rotate(var(--hue, 0deg));
+    }
+
+    #atmosphere {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 30;
+      background:
+        radial-gradient(ellipse at var(--lamp-x, 50%) var(--lamp-y, 18%), var(--light-wash), transparent 58%),
+        radial-gradient(ellipse at 72% 68%, var(--corner-glow, transparent), transparent 48%),
+        linear-gradient(180deg, var(--mood-tint), transparent 48%);
+      transition: background 0.55s ease, opacity 0.55s ease;
+      opacity: var(--atm-opacity, 0.88);
+      mix-blend-mode: soft-light;
+    }
+
+    #mood-veil {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 29;
+      background: var(--veil-color, transparent);
+      opacity: var(--veil-opacity, 0);
+      transition: background 0.9s ease, opacity 0.9s ease;
+      mix-blend-mode: multiply;
+    }
+
+    #dust {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 31;
+      opacity: 0;
+      transition: opacity 2s ease;
+      background-image:
+        radial-gradient(circle, rgba(255,255,255,0.55) 0 1px, transparent 2px),
+        radial-gradient(circle, rgba(255,240,220,0.4) 0 1px, transparent 2px),
+        radial-gradient(circle, rgba(255,255,255,0.35) 0 1px, transparent 2px);
+      background-size: 120px 90px, 180px 140px, 90px 110px;
+      background-position: 10% 20%, 60% 40%, 30% 70%;
+      animation: driftDust 18s linear infinite;
+    }
+
+    #room.star-twinkle::after {
+      animation: starTwinkle 1.1s ease-in-out 2;
+    }
+    @keyframes starTwinkle {
+      0%, 100% { opacity: 0.72; filter: brightness(1); }
+      50% { opacity: 1; filter: brightness(1.35); }
+    }
+
+    @keyframes driftDust {
+      from { background-position: 10% 20%, 60% 40%, 30% 70%; }
+      to { background-position: 18% 8%, 52% 55%, 40% 55%; }
+    }
+
+    /* Journey atmospheres */
+    #room.atm-soft {
+      --wall-top: #d4e4f4;
+      --wall-bot: #c0d6ec;
+      --floor: #d0aa88;
+      --floor-board: #c09874;
+      --sky-top: #c5dff0;
+      --sky-bot: #ffe6c8;
+      --light-wash: rgba(255, 220, 190, 0.55);
+      --mood-tint: rgba(255, 180, 150, 0.18);
+      filter: saturate(1.08) brightness(1.04);
+    }
+
+    #room.atm-ordered {
+      --wall-top: #c0d2e4;
+      --wall-bot: #aec4d8;
+      --floor: #bda48c;
+      --floor-board: #a89078;
+      --sky-top: #aec4d4;
+      --sky-bot: #e8dcc8;
+      --light-wash: rgba(220, 230, 240, 0.35);
+      --mood-tint: rgba(180, 190, 200, 0.12);
+      filter: saturate(0.88) contrast(1.06);
+    }
+
+    #room.atm-wonder {
+      --wall-top: #cdd4f0;
+      --wall-bot: #b8c4e4;
+      --floor: #c4a090;
+      --floor-board: #b08c78;
+      --sky-top: #c8b8d8;
+      --sky-bot: #f0d4c0;
+      --light-wash: rgba(210, 190, 255, 0.28);
+      --mood-tint: rgba(180, 140, 200, 0.14);
+      filter: saturate(1.12) hue-rotate(-4deg);
+    }
+
+    #room.atm-tender {
+      --wall-top: #d0e0f2;
+      --wall-bot: #bccfe8;
+      --floor: #d0a080;
+      --floor-board: #bc8c6c;
+      --sky-top: #b0c8e0;
+      --sky-bot: #f8d8b8;
+      --light-wash: rgba(255, 200, 170, 0.5);
+      --mood-tint: rgba(255, 160, 140, 0.16);
+      filter: saturate(1.05) brightness(1.03);
+    }
+
+    #room.room-ordered.atm-ordered .obj:not(.dragging) {
+      transition: left 1.8s ease, top 1.8s ease, transform 0.15s ease, filter 0.2s ease;
+    }
+
+    #room::before {
+      content: "";
+      position: absolute;
+      left: 0; right: 0;
+      top: 58%;
+      bottom: 0;
+      background:
+        repeating-linear-gradient(
+          90deg,
+          transparent 0 46px,
+          rgba(90, 60, 40, 0.07) 46px 48px
+        );
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Pastel-blue wall star field (wall only, behind furniture) */
+    #room::after,
+    .room-shot::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 58%;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.72;
+      background-image:
+        radial-gradient(1.6px 1.6px at 8% 12%, rgba(255,255,255,0.95), transparent),
+        radial-gradient(1.2px 1.2px at 18% 38%, rgba(255,248,230,0.8), transparent),
+        radial-gradient(1.8px 1.8px at 26% 16%, rgba(255,255,255,0.9), transparent),
+        radial-gradient(1.1px 1.1px at 34% 48%, rgba(230,240,255,0.75), transparent),
+        radial-gradient(1.5px 1.5px at 42% 22%, rgba(255,255,255,0.88), transparent),
+        radial-gradient(1.3px 1.3px at 52% 40%, rgba(255,248,230,0.7), transparent),
+        radial-gradient(2px 2px at 61% 14%, rgba(255,255,255,0.95), transparent),
+        radial-gradient(1.2px 1.2px at 70% 32%, rgba(230,240,255,0.8), transparent),
+        radial-gradient(1.6px 1.6px at 78% 20%, rgba(255,255,255,0.9), transparent),
+        radial-gradient(1.1px 1.1px at 86% 44%, rgba(255,248,230,0.7), transparent),
+        radial-gradient(1.4px 1.4px at 94% 18%, rgba(255,255,255,0.85), transparent),
+        radial-gradient(1.2px 1.2px at 12% 58%, rgba(230,240,255,0.65), transparent),
+        radial-gradient(1.5px 1.5px at 48% 62%, rgba(255,255,255,0.75), transparent),
+        radial-gradient(1.3px 1.3px at 88% 58%, rgba(255,248,230,0.7), transparent),
+        radial-gradient(1px 1px at 22% 72%, rgba(255,255,255,0.55), transparent),
+        radial-gradient(1px 1px at 66% 70%, rgba(230,240,255,0.5), transparent),
+        /* tiny 4-point sparkles */
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='140' viewBox='0 0 180 140'%3E%3Cg fill='%23ffffff' fill-opacity='0.55'%3E%3Cpath d='M30 22l1.2 3.6L35 27l-3.8 1.2L30 32l-1.2-3.8L25 27l3.8-1.2z'/%3E%3Cpath d='M95 48l1.4 4.2L101 54l-4.6 1.4L95 60l-1.4-4.6L89 54l4.6-1.4z'/%3E%3Cpath d='M150 28l1 3L154 32l-3 1L150 36l-1-3L146 32l3-1z'/%3E%3Cpath d='M60 70l1.1 3.2L64.5 74l-3.4 1.1L60 78.5l-1.1-3.4L55.5 74l3.4-1.1z'/%3E%3Cpath d='M125 78l0.9 2.6L129 82l-3.1 0.9L125 86l-0.9-3.1L121 82l3.1-0.9z'/%3E%3Cpath d='M168 55l1.2 3.5L173 60l-3.8 1.2L168 65l-1.2-3.8L163 60l3.8-1.2z'/%3E%3Cpath d='M15 90l0.8 2.4L18.5 94l-2.7 0.8L15 97.5l-0.8-2.7L11.5 94l2.7-0.8z'/%3E%3Cpath d='M108 18l0.7 2.1L111 21l-2.3 0.7L108 24l-0.7-2.3L105 21l2.3-0.7z'/%3E%3C/g%3E%3C/svg%3E");
+      background-size:
+        auto, auto, auto, auto, auto, auto, auto, auto, auto, auto, auto, auto, auto, auto, auto, auto,
+        180px 140px;
+      background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, repeat;
+    }
+
+    .window {
+      position: absolute;
+      top: 8%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 22%;
+      height: 28%;
+      background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bot) 100%);
+      border: 6px solid #c9a98a;
+      border-radius: 8px;
+      box-shadow: inset 0 0 24px rgba(255, 255, 255, 0.35), 0 8px 18px var(--shadow);
+      overflow: hidden;
+      transition: background 0.85s ease, box-shadow 0.85s ease, filter 0.85s ease;
+    }
+
+    .window::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(#c9a98a, #c9a98a) center/4px 100% no-repeat,
+        linear-gradient(#c9a98a, #c9a98a) center/100% 4px no-repeat;
+      opacity: 0.85;
+      z-index: 2;
+    }
+
+    .window-sill {
+      position: absolute;
+      left: -8%;
+      right: -8%;
+      bottom: -10px;
+      height: 12px;
+      background: #d4b396;
+      border-radius: 4px;
+      z-index: 3;
+    }
+
+    .curtain {
+      position: absolute;
+      top: 0;
+      width: 28%;
+      height: 100%;
+      background: linear-gradient(180deg, #e8b4a0, #d99284);
+      opacity: 0.75;
+      z-index: 1;
+      transition: width 1.8s ease, opacity 1.8s ease;
+    }
+    .curtain.left { left: 0; border-radius: 0 40% 20% 0; }
+    .curtain.right { right: 0; border-radius: 40% 0 0 20%; }
+
+    #room.atm-ordered .curtain { width: 18%; opacity: 0.55; }
+    #room.atm-tender .curtain, #room.atm-soft .curtain { width: 34%; opacity: 0.82; }
+    #room.atm-wonder .curtain { width: 24%; opacity: 0.7; }
+
+    .bed {
+      position: absolute;
+      left: 6%;
+      bottom: 10%;
+      width: 34%;
+      height: 28%;
+      background: linear-gradient(180deg, #f3e2d4, #e4cbb8);
+      border-radius: 18px 18px 10px 10px;
+      box-shadow: 0 10px 20px var(--shadow);
+      transition: filter 1.5s ease;
+    }
+
+    .bed::before {
+      content: "";
+      position: absolute;
+      left: 8%;
+      top: -12%;
+      width: 28%;
+      height: 38%;
+      background: #f7efe8;
+      border-radius: 12px;
+      box-shadow: inset 0 -6px 0 #e8d5c8;
+    }
+
+    .bed::after {
+      content: "";
+      position: absolute;
+      left: 10%;
+      right: 10%;
+      top: 18%;
+      height: 55%;
+      background: linear-gradient(180deg, #d9b3c7, #c995ad);
+      border-radius: 12px;
+      opacity: 0.9;
+      transition: background 1.5s ease, opacity 1.5s ease;
+    }
+
+    #room.atm-soft .bed::after { background: linear-gradient(180deg, #e0b8c8, #d0a0b4); }
+    #room.atm-ordered .bed::after { background: linear-gradient(180deg, #c8b0bc, #b098a4); opacity: 0.75; }
+    #room.atm-wonder .bed::after { background: linear-gradient(180deg, #c8b0d0, #b090c0); }
+
+    .table {
+      position: absolute;
+      right: 10%;
+      bottom: 18%;
+      width: 18%;
+      height: 10%;
+      background: linear-gradient(180deg, #c9a078, #a87f5c);
+      border-radius: 8px;
+      box-shadow: 0 8px 16px var(--shadow);
+    }
+
+    .table::before {
+      content: "";
+      position: absolute;
+      left: 12%;
+      right: 12%;
+      top: 100%;
+      height: 55px;
+      background:
+        linear-gradient(#9a7352, #9a7352) left/10px 100% no-repeat,
+        linear-gradient(#9a7352, #9a7352) right/10px 100% no-repeat;
+      opacity: 0.9;
+    }
+
+    .rug {
+      position: absolute;
+      left: 42%;
+      bottom: 12%;
+      width: 28%;
+      height: 16%;
+      background: radial-gradient(ellipse, #e8c4b0, #d4a890 70%);
+      border-radius: 50%;
+      opacity: 0;
+      transform: scale(0.6);
+      transition: opacity 1.4s ease, transform 1.4s ease, background 1.5s ease;
+      pointer-events: none;
+    }
+
+    #room.atm-tender .rug,
+    #room.atm-soft .rug,
+    #room.has-nest .rug {
+      opacity: 0.85;
+      transform: scale(1);
+    }
+
+    #room.atm-wonder .rug {
+      opacity: 0.5;
+      transform: scale(0.85);
+      background: radial-gradient(ellipse, #d8c0d8, #c0a0c0 70%);
+    }
+
+    .nest-pile {
+      position: absolute;
+      width: 70px;
+      height: 28px;
+      border-radius: 40px;
+      background: radial-gradient(ellipse, #efd2bc, #d8b29a);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 1s ease;
+      z-index: 2;
+    }
+
+    #room.has-nest .nest-pile { opacity: 0.9; }
+
+    /* Memory traces — quiet marks of the journey */
+    .trace {
+      position: absolute;
+      pointer-events: none;
+      z-index: 3;
+      opacity: 0;
+      transition: opacity 1.2s ease;
+    }
+
+    .trace.show { opacity: 1; }
+
+    .trace-hearts {
+      left: 12%;
+      top: 42%;
+      font-size: 14px;
+      letter-spacing: 6px;
+      filter: blur(0.2px);
+      opacity: 0.55;
+    }
+
+    .trace-grid {
+      right: 12%;
+      bottom: 22%;
+      width: 54px;
+      height: 40px;
+      border: 1px solid rgba(90, 60, 40, 0.18);
+      background:
+        linear-gradient(rgba(90,60,40,0.12), rgba(90,60,40,0.12)) center/100% 1px no-repeat,
+        linear-gradient(rgba(90,60,40,0.12), rgba(90,60,40,0.12)) center/1px 100% no-repeat;
+      border-radius: 2px;
+    }
+
+    .trace-stars {
+      left: 70%;
+      top: 44%;
+      font-size: 12px;
+      letter-spacing: 8px;
+      opacity: 0.5;
+    }
+
+    .trace-yarn {
+      left: 40%;
+      bottom: 18%;
+      width: 80px;
+      height: 20px;
+      border-bottom: 2px dashed rgba(180, 120, 100, 0.35);
+      border-radius: 50%;
+      transform: rotate(-8deg);
+    }
+
+    .obj {
+      position: absolute;
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      font-size: 28px;
+      cursor: grab;
+      z-index: 5;
+      touch-action: none;
+      filter: drop-shadow(0 4px 6px var(--shadow));
+      transition: filter 0.2s ease, transform 0.15s ease;
+      will-change: left, top, transform;
+    }
+
+    .obj:active, .obj.dragging { cursor: grabbing; transform: scale(1.12); z-index: 20; }
+    .obj.hint-shimmer { animation: shimmer 1.4s ease-in-out infinite; }
+    .obj.gifted { filter: drop-shadow(0 0 8px rgba(255, 200, 150, 0.7)); }
+    .obj.reward-item {
+      filter: drop-shadow(0 4px 6px var(--shadow)) drop-shadow(0 0 10px rgba(255, 210, 140, 0.45));
+    }
+    .obj.reward-item.reward-new {
+      animation: decorArrive 0.85s ease-out;
+    }
+    @keyframes decorArrive {
+      0% { opacity: 0; transform: scale(0.2) translateY(12px); }
+      60% { opacity: 1; transform: scale(1.18) translateY(-4px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .journal-entry .tag.secret { color: #8a6a40; }
+
+    @keyframes shimmer {
+      0%, 100% { filter: drop-shadow(0 4px 6px var(--shadow)); }
+      50% { filter: drop-shadow(0 0 12px rgba(255, 220, 160, 0.95)) brightness(1.15); }
+    }#monster, .monster{
+      position: absolute;
+      width: 72px;
+      height: 78px;
+      z-index: 10;
+      cursor: grab;
+      touch-action: none;
+      transform-origin: center bottom;
+      will-change: left, top, transform;
+      pointer-events: auto;
+    }#monster *, .monster *{ pointer-events: none; }#monster:active, .monster:active, #monster.dragging, .monster.dragging{ cursor: grabbing; z-index: 25; }
+
+    .mood-aura {
+      position: absolute;
+      left: 50%;
+      top: 58%;
+      width: 78px;
+      height: 78px;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.75;
+      filter: blur(1px);
+      transition: background 0.35s ease, box-shadow 0.35s ease, opacity 0.35s ease, transform 0.35s ease;
+      background: radial-gradient(circle, rgba(160, 220, 190, 0.35), transparent 70%);
+    }
+
+    .mood-chip {
+      position: absolute;
+      left: 50%;
+      top: -6px;
+      transform: translateX(-50%);
+      z-index: 12;
+      font-size: 0.58rem;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      background: rgba(255, 248, 240, 0.9);
+      color: #5a4638;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+      pointer-events: none;
+      opacity: 0.95;
+      transition: background 0.3s ease, color 0.3s ease, transform 0.25s ease;
+      max-width: 140px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .plush {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      display: grid;
+      place-items: end center;
+      z-index: 1;
+      padding-bottom: 2px;
+    }
+
+    .plush-body {
+      width: 54px;
+      height: 54px;
+      background:
+        radial-gradient(circle at 32% 28%, #f6d7a8, #e4b978 48%, #c99252 78%, #b57a3f);
+      border-radius: 50%;
+      position: relative;
+      box-shadow:
+        0 6px 12px var(--shadow),
+        inset 0 -8px 14px rgba(120, 70, 30, 0.18),
+        inset 0 6px 10px rgba(255, 245, 220, 0.35);
+      transition: background 0.45s ease, box-shadow 0.35s ease, filter 0.35s ease;
+      border: 1.5px solid rgba(150, 95, 45, 0.28);
+    }
+
+    .cookie-chip {
+      position: absolute;
+      width: 7px;
+      height: 6px;
+      background: linear-gradient(145deg, #5a3428, #3d2218);
+      border-radius: 45% 55% 50% 50%;
+      box-shadow: inset 0 1px 1px rgba(255,255,255,0.15);
+      pointer-events: none;
+      z-index: 1;
+    }
+    .cookie-chip.c1 { left: 10px; top: 8px; transform: rotate(-18deg); }
+    .cookie-chip.c2 { right: 9px; top: 12px; width: 8px; height: 5px; transform: rotate(24deg); }
+    .cookie-chip.c3 { left: 8px; bottom: 12px; width: 6px; height: 7px; transform: rotate(12deg); }
+    .cookie-chip.c4 { right: 12px; bottom: 10px; transform: rotate(-30deg); }
+    .cookie-chip.c5 { left: 24px; top: 4px; width: 5px; height: 5px; transform: rotate(8deg); }/* Mood looks on the cookie monster */
+    #monster.idle .mood-aura, .portrait-monster.idle .mood-aura{
+      background: radial-gradient(circle, rgba(230, 190, 120, 0.4), transparent 70%);
+      box-shadow: 0 0 18px rgba(210, 160, 90, 0.25);
+    }#monster.happy .mood-aura, .monster.happy .mood-aura, .portrait-monster.happy .mood-aura{
+      background: radial-gradient(circle, rgba(255, 200, 120, 0.55), transparent 68%);
+      box-shadow: 0 0 28px rgba(255, 180, 90, 0.55);
+      transform: translate(-50%, -50%) scale(1.12);
+    }#monster.happy .plush-body, .monster.happy .plush-body, .portrait-monster.happy .plush-body{
+      background: radial-gradient(circle at 32% 28%, #ffe2b0, #f0c078 48%, #dca050 78%, #c88840);
+      box-shadow:
+        0 0 18px rgba(255, 190, 100, 0.55),
+        inset 0 -8px 14px rgba(120, 70, 30, 0.16),
+        inset 0 6px 10px rgba(255, 245, 220, 0.4);
+    }#monster.happy .mood-chip, .monster.happy .mood-chip, .portrait-monster.happy .mood-chip{ background: #ffe6b8; }#monster.curious .mood-aura, .monster.curious .mood-aura, .portrait-monster.curious .mood-aura{
+      background: radial-gradient(circle, rgba(180, 160, 255, 0.5), transparent 68%);
+      box-shadow: 0 0 24px rgba(160, 140, 255, 0.45);
+    }#monster.curious .plush-body, .monster.curious .plush-body, .portrait-monster.curious .plush-body{
+      background: radial-gradient(circle at 32% 28%, #f0d8b8, #d8b888 48%, #c09868 78%, #a87848);
+      box-shadow:
+        0 0 16px rgba(160, 140, 255, 0.35),
+        inset 0 -8px 14px rgba(90, 60, 40, 0.18),
+        inset 0 6px 10px rgba(255, 245, 220, 0.3);
+    }#monster.curious .mood-chip, .monster.curious .mood-chip, .portrait-monster.curious .mood-chip{ background: #e0d4ff; }#monster.shy .mood-aura, .monster.shy .mood-aura, .portrait-monster.shy .mood-aura{
+      background: radial-gradient(circle, rgba(160, 180, 200, 0.45), transparent 70%);
+      box-shadow: 0 0 20px rgba(120, 140, 170, 0.35);
+      opacity: 0.55;
+      transform: translate(-50%, -50%) scale(0.88);
+    }#monster.shy .plush-body, .monster.shy .plush-body, .portrait-monster.shy .plush-body{
+      background: radial-gradient(circle at 32% 28%, #e8d0b0, #d0b088 48%, #b89068 78%, #9a7850);
+      filter: brightness(0.94) saturate(0.9);
+    }#monster.shy .mood-chip, .monster.shy .mood-chip, .portrait-monster.shy .mood-chip{ background: #d0dae4; color: #4a5560; }#monster.resistant .mood-aura, .monster.resistant .mood-aura, .portrait-monster.resistant .mood-aura{
+      background: radial-gradient(circle, rgba(255, 120, 110, 0.5), transparent 68%);
+      box-shadow: 0 0 26px rgba(255, 90, 80, 0.5);
+      animation: auraPulse 0.45s ease-in-out infinite;
+    }#monster.resistant .plush-body, .monster.resistant .plush-body, .portrait-monster.resistant .plush-body{
+      background: radial-gradient(circle at 32% 28%, #ecc0a0, #d49870 48%, #c07850 78%, #a86040);
+      box-shadow:
+        0 0 18px rgba(255, 100, 90, 0.4),
+        inset 0 -8px 14px rgba(120, 50, 30, 0.2),
+        inset 0 6px 10px rgba(255, 230, 200, 0.25);
+    }#monster.resistant .mood-chip, .monster.resistant .mood-chip, .portrait-monster.resistant .mood-chip{ background: #ffc8c0; color: #6a3030; }#monster.sleepy .mood-aura, .monster.sleepy .mood-aura, .portrait-monster.sleepy .mood-aura{
+      background: radial-gradient(circle, rgba(180, 160, 220, 0.35), transparent 70%);
+      box-shadow: 0 0 16px rgba(140, 120, 180, 0.3);
+      opacity: 0.5;
+    }#monster.sleepy .plush-body, .monster.sleepy .plush-body, .portrait-monster.sleepy .plush-body{
+      background: radial-gradient(circle at 32% 28%, #e0c8b0, #c8a888 48%, #b09070 78%, #987858);
+      filter: brightness(0.92);
+    }#monster.sleepy .mood-chip, .monster.sleepy .mood-chip, .portrait-monster.sleepy .mood-chip{ background: #d8d0e8; }#monster.exploring .mood-aura, .monster.exploring .mood-aura, .portrait-monster.exploring .mood-aura{
+      background: radial-gradient(circle, rgba(120, 220, 200, 0.5), transparent 68%);
+      box-shadow: 0 0 22px rgba(80, 200, 180, 0.45);
+    }#monster.exploring .plush-body, .monster.exploring .plush-body, .portrait-monster.exploring .plush-body{
+      background: radial-gradient(circle at 32% 28%, #f2d8a8, #e0b870 48%, #c99850 78%, #b08040);
+      box-shadow:
+        0 0 16px rgba(80, 210, 180, 0.35),
+        inset 0 -8px 14px rgba(120, 70, 30, 0.16),
+        inset 0 6px 10px rgba(255, 245, 220, 0.35);
+    }#monster.exploring .mood-chip, .monster.exploring .mood-chip, .portrait-monster.exploring .mood-chip{ background: #c8f5ea; }
+
+    @keyframes auraPulse {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); }
+      50% { transform: translate(-50%, -50%) scale(1.1); }
+    }
+
+    .plush-eye {
+      position: absolute;
+      top: 11px;
+      width: 17px;
+      height: 17px;
+      background: #ffffff;
+      border-radius: 50%;
+      transition: height 0.25s ease, transform 0.25s ease, top 0.25s ease, width 0.25s ease;
+      z-index: 2;
+      box-shadow:
+        0 2px 3px rgba(60, 40, 20, 0.35),
+        0 0 0 1px rgba(40, 25, 15, 0.12),
+        inset 0 -2px 3px rgba(0, 0, 0, 0.06);
+    }
+    .plush-eye::after {
+      content: "";
+      position: absolute;
+      width: 9px;
+      height: 9px;
+      background: #111;
+      border-radius: 50%;
+      top: 5px;
+      left: 4px;
+      box-shadow: 1px 1px 0 rgba(255,255,255,0.22);
+      transition: top 0.2s ease, left 0.2s ease, width 0.2s ease, height 0.2s ease;
+    }
+    /* Cookie Monster: large googly eyes, almost touching, tiny gap */
+    .plush-eye.l { left: 9px; }
+    .plush-eye.r { right: 9px; left: auto; }
+    /* Pupils lean slightly inward = classic Cookie Monster googly look */
+    .plush-eye.l::after { top: 5px; left: 6px; }
+    .plush-eye.r::after { top: 4px; left: 2px; }
+
+    .plush-blush {
+      position: absolute;
+      top: 30px;
+      width: 8px;
+      height: 5px;
+      background: rgba(232, 140, 140, 0.45);
+      border-radius: 50%;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      z-index: 2;
+    }
+    .plush-blush.l { left: 5px; }
+    .plush-blush.r { right: 5px; }
+
+    .plush-mouth {
+      position: absolute;
+      left: 50%;
+      top: 36px;
+      width: 12px;
+      height: 6px;
+      border-bottom: 2.5px solid #3d2a18;
+      border-radius: 0 0 12px 12px;
+      transform: translateX(-50%);
+      transition: top 0.25s ease, width 0.25s ease, height 0.25s ease;
+      z-index: 2;
+    }#monster.idle .plush, .monster.idle .plush, .portrait-monster.idle .plush{ animation: breathe 2.8s ease-in-out infinite; }#monster.happy .plush, .monster.happy .plush, .portrait-monster.happy .plush{ animation: bounce 0.55s ease-in-out infinite; }#monster.happy .plush-blush, .monster.happy .plush-blush, .portrait-monster.happy .plush-blush{ opacity: 1; }#monster.happy .plush-mouth, .monster.happy .plush-mouth, .portrait-monster.happy .plush-mouth{
+      width: 16px;
+      height: 8px;
+      border-bottom-width: 2.5px;
+      top: 34px;
+    }#monster.happy .plush-eye.l::after, .monster.happy .plush-eye.l::after, .portrait-monster.happy .plush-eye.l::after{ top: 3px; left: 5px; }#monster.happy .plush-eye.r::after, .monster.happy .plush-eye.r::after, .portrait-monster.happy .plush-eye.r::after{ top: 3px; left: 3px; }#monster.curious .plush, .monster.curious .plush, .portrait-monster.curious .plush{ animation: breathe 2.2s ease-in-out infinite; }#monster.curious .plush-eye, .monster.curious .plush-eye, .portrait-monster.curious .plush-eye{
+      width: 18px;
+      height: 18px;
+      top: 9px;
+    }#monster.curious .plush-eye.l, .monster.curious .plush-eye.l, .portrait-monster.curious .plush-eye.l{ left: 8px; transform: none; }#monster.curious .plush-eye.r, .monster.curious .plush-eye.r, .portrait-monster.curious .plush-eye.r{ right: 8px; transform: none; }#monster.curious .plush-eye.l::after, .monster.curious .plush-eye.l::after, .portrait-monster.curious .plush-eye.l::after{
+      width: 10px; height: 10px; top: 2px; left: 6px;
+    }#monster.curious .plush-eye.r::after, .monster.curious .plush-eye.r::after, .portrait-monster.curious .plush-eye.r::after{
+      width: 10px; height: 10px; top: 3px; left: 1px;
+    }#monster.curious .plush-mouth, .monster.curious .plush-mouth, .portrait-monster.curious .plush-mouth{
+      width: 9px;
+      height: 9px;
+      border: 2.5px solid #3d2a18;
+      border-radius: 50%;
+      border-top-color: transparent;
+      border-left-color: transparent;
+      border-bottom: none;
+      top: 36px;
+      transform: translateX(-50%) rotate(45deg);
+    }#monster.shy .plush, .monster.shy .plush, .portrait-monster.shy .plush{ animation: shySway 1.6s ease-in-out infinite; }#monster.shy .plush-eye, .monster.shy .plush-eye, .portrait-monster.shy .plush-eye{
+      width: 16px;
+      height: 14px;
+      top: 13px;
+      border-radius: 50%;
+    }#monster.shy .plush-eye::after, .monster.shy .plush-eye::after, .portrait-monster.shy .plush-eye::after{
+      width: 7px; height: 7px; top: 5px;
+    }#monster.shy .plush-eye.l::after, .monster.shy .plush-eye.l::after, .portrait-monster.shy .plush-eye.l::after{ left: 7px; }#monster.shy .plush-eye.r::after, .monster.shy .plush-eye.r::after, .portrait-monster.shy .plush-eye.r::after{ left: 2px; }#monster.shy .plush-mouth, .monster.shy .plush-mouth, .portrait-monster.shy .plush-mouth{
+      width: 8px;
+      height: 3px;
+      border-bottom: 2px solid #3d2a18;
+      border-radius: 0 0 8px 8px;
+      top: 36px;
+      border-top: none;
+      transform: translateX(-50%);
+    }#monster.shy .plush-blush, .monster.shy .plush-blush, .portrait-monster.shy .plush-blush{ opacity: 0.7; }#monster.resistant .plush, .monster.resistant .plush, .portrait-monster.resistant .plush{ animation: resistShake 0.45s ease-in-out infinite; }#monster.resistant .plush-eye, .monster.resistant .plush-eye, .portrait-monster.resistant .plush-eye{
+      width: 17px;
+      height: 17px;
+      top: 11px;
+      transform: none;
+    }#monster.resistant .plush-eye.l::after, .monster.resistant .plush-eye.l::after, .portrait-monster.resistant .plush-eye.l::after{
+      top: 2px; left: 2px; width: 9px; height: 9px;
+    }#monster.resistant .plush-eye.r::after, .monster.resistant .plush-eye.r::after, .portrait-monster.resistant .plush-eye.r::after{
+      top: 2px; left: 6px; width: 9px; height: 9px;
+    }#monster.resistant .plush-mouth, .monster.resistant .plush-mouth, .portrait-monster.resistant .plush-mouth{
+      border-bottom: none;
+      border-top: 2.5px solid #3d2a18;
+      border-radius: 10px 10px 0 0;
+      top: 38px;
+      height: 4px;
+      width: 14px;
+      transform: translateX(-50%);
+    }#monster.sleepy .plush, .monster.sleepy .plush, .portrait-monster.sleepy .plush{ animation: breathe 4.2s ease-in-out infinite; }#monster.sleepy .plush-eye, .monster.sleepy .plush-eye, .portrait-monster.sleepy .plush-eye{
+      height: 5px;
+      width: 16px;
+      top: 19px;
+      border-radius: 6px;
+      background: #ffffff;
+      box-shadow: 0 1px 2px rgba(60, 40, 20, 0.25);
+    }#monster.sleepy .plush-eye::after, .monster.sleepy .plush-eye::after, .portrait-monster.sleepy .plush-eye::after{
+      display: none;
+    }#monster.sleepy .plush-mouth, .monster.sleepy .plush-mouth, .portrait-monster.sleepy .plush-mouth{
+      width: 7px;
+      height: 3px;
+      top: 37px;
+      opacity: 0.7;
+    }#monster.exploring .plush, .monster.exploring .plush, .portrait-monster.exploring .plush{ animation: walkBob 0.45s ease-in-out infinite; }#monster.exploring .plush-eye.l, .monster.exploring .plush-eye.l, .portrait-monster.exploring .plush-eye.l{ transform: none; }#monster.exploring .plush-eye.r, .monster.exploring .plush-eye.r, .portrait-monster.exploring .plush-eye.r{ transform: none; }#monster.exploring .plush-eye.l::after, .monster.exploring .plush-eye.l::after, .portrait-monster.exploring .plush-eye.l::after{
+      top: 3px; left: 7px; width: 9px; height: 9px;
+    }#monster.exploring .plush-eye.r::after, .monster.exploring .plush-eye.r::after, .portrait-monster.exploring .plush-eye.r::after{
+      top: 4px; left: 4px; width: 9px; height: 9px;
+    }#monster.hint-pulse .plush-body, .monster.hint-pulse .plush-body, .portrait-monster.hint-pulse .plush-body{ animation: pulseGlow 1.2s ease-in-out infinite; }
+
+    @keyframes breathe {
+      0%, 100% { transform: scale(1, 1); }
+      50% { transform: scale(1.04, 0.96); }
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    @keyframes shySway {
+      0%, 100% { transform: translateX(0) rotate(-2deg); }
+      50% { transform: translateX(-4px) rotate(3deg); }
+    }
+    @keyframes resistShake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px) rotate(-4deg); }
+      75% { transform: translateX(5px) rotate(4deg); }
+    }
+    @keyframes walkBob {
+      0%, 100% { transform: translateY(0) rotate(-2deg); }
+      50% { transform: translateY(-4px) rotate(2deg); }
+    }
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 6px 12px var(--shadow), 0 0 0 0 rgba(255, 214, 170, 0.5); }
+      50% { box-shadow: 0 6px 12px var(--shadow), 0 0 22px 6px rgba(255, 214, 170, 0.75); }
+    }
+
+    /* Playful FX */
+    .fx {
+      position: absolute;
+      pointer-events: none;
+      z-index: 28;
+      font-size: 16px;
+      animation: fxFloat 0.9s ease-out forwards;
+    }
+
+    @keyframes fxFloat {
+      0% { opacity: 1; transform: translate(-50%, -50%) scale(0.6); }
+      100% { opacity: 0; transform: translate(-50%, -120%) scale(1.15); }
+    }
+
+    .fx.ripple {
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255, 210, 170, 0.7);
+      border-radius: 50%;
+      font-size: 0;
+      animation: fxRipple 0.7s ease-out forwards;
+    }
+
+    @keyframes fxRipple {
+      0% { opacity: 0.8; transform: translate(-50%, -50%) scale(0.4); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(2.4); }
+    }
+
+    .fx.crumb {
+      font-size: 11px;
+      filter: drop-shadow(0 1px 1px rgba(40, 20, 10, 0.35));
+      animation: crumbPop 1.05s ease-out forwards;
+    }
+
+    @keyframes crumbPop {
+      0% { opacity: 0; transform: translate(-50%, -40%) scale(0.4) rotate(-20deg); }
+      35% { opacity: 1; transform: translate(-50%, -90%) scale(1.15) rotate(8deg); }
+      100% { opacity: 0; transform: translate(-50%, -160%) scale(0.85) rotate(18deg); }
+    }
+
+    .secret-crumb {
+      position: absolute;
+      z-index: 27;
+      width: 13px;
+      height: 13px;
+      margin: 0;
+      padding: 0;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      background:
+        radial-gradient(circle at 32% 28%, #8a5a32 0 28%, transparent 30%),
+        radial-gradient(circle at 68% 62%, #5a3418 0 22%, transparent 24%),
+        radial-gradient(circle at 50% 50%, #6b4423, #3d2412 70%);
+      box-shadow: 0 2px 4px rgba(40, 20, 10, 0.28);
+      animation: crumbWiggle 2.4s ease-in-out infinite;
+      pointer-events: auto;
+    }
+    .secret-crumb:hover { transform: scale(1.18); }
+    .secret-crumb:focus-visible { outline: 2px solid rgba(255, 220, 170, 0.8); outline-offset: 3px; }
+
+    @keyframes crumbWiggle {
+      0%, 100% { transform: translateY(0) rotate(-6deg); }
+      50% { transform: translateY(-3px) rotate(8deg); }
+    }
+
+    #overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(42, 34, 28, 0.28);
+      z-index: 40;
+      pointer-events: none;
+      transition: opacity 1.2s ease;
+    }
+
+    #overlay.hidden { opacity: 0; }
+
+    #overlay-card {
+      text-align: center;
+      max-width: min(520px, 88%);
+      padding: 0 1rem;
+    }
+
+    #overlay-title {
+      font-size: clamp(1.45rem, 3.4vw, 2.15rem);
+      letter-spacing: 0.08em;
+      color: var(--soft);
+      text-shadow: 0 2px 20px rgba(0,0,0,0.45);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 1.2s ease, transform 1.2s ease;
+      margin-bottom: 0.55rem;
+      font-weight: normal;
+    }
+
+    #overlay-subtitle {
+      font-size: clamp(0.85rem, 1.8vw, 1.05rem);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(247, 235, 227, 0.78);
+      text-shadow: 0 2px 12px rgba(0,0,0,0.35);
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 1.2s ease 0.25s, transform 1.2s ease 0.25s;
+      margin-bottom: 1.1rem;
+    }
+
+    #overlay-text {
+      font-size: clamp(1.05rem, 2.3vw, 1.45rem);
+      letter-spacing: 0.04em;
+      color: var(--soft);
+      text-shadow: 0 2px 16px rgba(0,0,0,0.4);
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 1.1s ease, transform 1.1s ease;
+      line-height: 1.45;
+    }
+
+    #overlay-title.show,
+    #overlay-subtitle.show,
+    #overlay-text.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    #mirror-text {
+      font-size: clamp(1.05rem, 2.3vw, 1.55rem);
+      letter-spacing: 0.04em;
+      color: var(--soft);
+      text-shadow: 0 2px 16px rgba(0,0,0,0.4);
+      opacity: 0;
+      text-align: center;
+      max-width: 86%;
+      line-height: 1.45;
+      padding: 0 1rem;
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%) translateY(8px);
+      z-index: 36;
+      pointer-events: none;
+      width: 90%;
+      transition: opacity 1.1s ease, transform 1.1s ease;
+    }
+
+    #mirror-text.show {
+      opacity: 1;
+      transform: translate(-50%, -50%) translateY(0);
+    }
+
+    #room-title {
+      position: absolute;
+      top: 3.2%;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 33;
+      text-align: center;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 1.4s ease;
+    }
+
+    #room-title.visible { opacity: 1; }
+
+    #room-title h1 {
+      font-size: clamp(0.95rem, 2vw, 1.2rem);
+      font-weight: normal;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(90, 70, 56, 0.82);
+      text-shadow: 0 1px 0 rgba(255, 245, 235, 0.35);
+    }
+
+    #room-title p {
+      margin-top: 0.2rem;
+      font-size: clamp(0.7rem, 1.4vw, 0.82rem);
+      letter-spacing: 0.04em;
+      font-style: italic;
+      color: rgba(90, 70, 56, 0.62);
+    }
+
+    #float-note {
+      position: absolute;
+      left: 50%;
+      bottom: 11%;
+      width: min(420px, 82%);
+      transform: translateX(-50%);
+      z-index: 34;
+      pointer-events: none;
+      text-align: center;
+      font-size: clamp(0.78rem, 1.6vw, 0.92rem);
+      line-height: 1.45;
+      letter-spacing: 0.02em;
+      color: rgba(247, 235, 227, 0.9);
+      text-shadow: 0 2px 14px rgba(0,0,0,0.45);
+      opacity: 0;
+      transition: opacity 1.4s ease;
+      animation: floatDrift 7s ease-in-out infinite;
+    }
+
+    #float-note.show { opacity: 1; }
+
+    @keyframes floatDrift {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(-7px); }
+    }
+
+    #hint-text {
+      position: absolute;
+      left: 50%;
+      bottom: 8%;
+      transform: translateX(-50%);
+      font-size: 1rem;
+      color: var(--soft);
+      text-shadow: 0 2px 12px rgba(0,0,0,0.4);
+      opacity: 0;
+      transition: opacity 0.8s ease;
+      pointer-events: none;
+      z-index: 35;
+      white-space: nowrap;
+    }
+
+    #hint-text.show { opacity: 1; }
+
+    #room.flash-warm {
+      animation: flashWarm 0.55s ease;
+    }
+
+    @keyframes flashWarm {
+      0% { box-shadow: 0 30px 80px rgba(0,0,0,0.45), inset 0 0 0 3px rgba(255,255,255,0.08); }
+      40% { box-shadow: 0 30px 80px rgba(0,0,0,0.45), inset 0 0 40px rgba(255, 200, 150, 0.35); }
+      100% { box-shadow: 0 30px 80px rgba(0,0,0,0.45), inset 0 0 0 3px rgba(255,255,255,0.08); }
+    }
+
+    #room.flash-cool {
+      animation: flashCool 0.55s ease;
+    }
+
+    @keyframes flashCool {
+      0% { box-shadow: 0 30px 80px rgba(0,0,0,0.45), inset 0 0 0 3px rgba(255,255,255,0.08); }
+      40% { box-shadow: 0 30px 80px rgba(0,0,0,0.45), inset 0 0 36px rgba(180, 200, 220, 0.3); }
+      100% { box-shadow: 0 30px 80px rgba(0,0,0,0.45), inset 0 0 0 3px rgba(255,255,255,0.08); }
+    }
+
+    #calm-hud {
+      position: absolute;
+      left: 50%;
+      top: 10px;
+      transform: translateX(-50%);
+      z-index: 40;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.28rem;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.45s ease;
+    }
+    #calm-hud.visible { opacity: 1; }
+    #calm-label {
+      font-size: 0.62rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(90, 70, 56, 0.72);
+      background: rgba(255, 248, 240, 0.72);
+      padding: 0.18rem 0.55rem;
+      border-radius: 999px;
+    }
+    .calm-bar {
+      width: min(160px, 36vw);
+      height: 5px;
+      border-radius: 999px;
+      background: rgba(60, 40, 30, 0.14);
+      overflow: hidden;
+    }
+    #calm-fill {
+      display: block;
+      height: 100%;
+      width: 22%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #c47868, #e8b86d);
+      transition: width 0.35s ease, background 0.45s ease;
+    }
+    #calm-hud.settled #calm-fill {
+      background: linear-gradient(90deg, #7aab8c, #c5d48a);
+    }
+    #calm-hud.restless #calm-fill {
+      background: linear-gradient(90deg, #c47868, #d4886a);
+    }
+    #camera-btn.needs-calm {
+      animation: camRestless 1.1s ease-in-out infinite;
+    }
+    @keyframes camRestless {
+      0%, 100% { filter: none; transform: translateY(0) rotate(0deg); }
+      30% { filter: saturate(1.1); transform: translateY(-1px) rotate(-3deg); }
+      70% { transform: translateY(1px) rotate(3deg); }
+    }
+
+    /* Side journal icon — always available */
+    #journal-dock {
+      position: absolute;
+      right: max(12px, 2vw);
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 60;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.35rem;
+      pointer-events: none;
+    }
+
+    #journal-btn {
+      pointer-events: auto;
+      position: relative;
+      width: 52px;
+      height: 58px;
+      cursor: pointer;
+      border: none;
+      padding: 0;
+      background: rgba(42, 34, 28, 0.35);
+      border-radius: 14px;
+      box-shadow: 0 10px 28px rgba(0,0,0,0.35);
+      touch-action: manipulation;
+      display: grid;
+      place-items: center;
+      backdrop-filter: blur(6px);
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    #journal-btn:hover,
+    #journal-btn:focus-visible {
+      transform: translateY(-2px) scale(1.04);
+      background: rgba(60, 48, 40, 0.5);
+    }
+
+    #journal-btn .book {
+      width: 28px;
+      height: 34px;
+      background: linear-gradient(135deg, #d48878 0%, #b86858 55%, #9a5048 100%);
+      border-radius: 3px 7px 7px 3px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.25), inset -3px 0 0 rgba(0,0,0,0.12);
+      position: relative;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    #journal-btn .book::before {
+      content: "";
+      position: absolute;
+      left: 4px;
+      top: 5px;
+      bottom: 5px;
+      width: 2px;
+      background: rgba(255, 230, 210, 0.5);
+      border-radius: 1px;
+    }
+
+    #journal-btn .book::after {
+      content: "";
+      position: absolute;
+      right: 0;
+      top: 2px;
+      bottom: 2px;
+      width: 68%;
+      background: linear-gradient(180deg, #f7ebe0, #ead5c0);
+      border-radius: 0 4px 4px 0;
+      box-shadow: inset 0 0 0 1px rgba(90, 60, 40, 0.08);
+    }
+
+    #journal-btn.has-new .book {
+      animation: journalPulse 1.4s ease-in-out infinite;
+    }
+
+    #journal-dock-label {
+      pointer-events: none;
+      font-size: 0.68rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(247, 235, 227, 0.72);
+      text-shadow: 0 1px 8px rgba(0,0,0,0.45);
+    }
+
+    @keyframes journalPulse {
+      0%, 100% { box-shadow: 0 4px 10px rgba(0,0,0,0.25), 0 0 0 0 rgba(255, 210, 160, 0.5); }
+      50% { box-shadow: 0 4px 10px rgba(0,0,0,0.25), 0 0 16px 4px rgba(255, 210, 160, 0.85); }
+    }
+
+    #journal-badge {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #e8a090;
+      box-shadow: 0 0 0 2px rgba(255, 245, 235, 0.8);
+      opacity: 0;
+      transform: scale(0.5);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      pointer-events: none;
+    }
+
+    #journal-btn.has-new #journal-badge {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    #journal-panel,
+    #report-panel {
+      position: absolute;
+      inset: 0;
+      z-index: 70;
+      display: grid;
+      place-items: center;
+      background: rgba(32, 24, 20, 0.42);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.35s ease;
+    }
+
+    #journal-panel.open,
+    #report-panel.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .journal-sheet {
+      width: min(420px, 88%);
+      max-height: min(520px, 82%);
+      background:
+        linear-gradient(90deg, #e8d4bc 0 14px, transparent 14px),
+        linear-gradient(180deg, #f7ecde, #f0e2d0);
+      border-radius: 6px 14px 14px 6px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(90,60,40,0.1);
+      padding: 1.35rem 1.4rem 1.1rem 1.7rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      transform: translateY(10px) rotate(-0.5deg);
+      transition: transform 0.35s ease;
+      color: #5a4638;
+      overflow: hidden;
+      touch-action: pan-y;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    #journal-panel.open .journal-sheet {
+      transform: translateY(0) rotate(-0.5deg);
+    }
+
+    .journal-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 0.75rem;
+      border-bottom: 1px solid rgba(90, 60, 40, 0.15);
+      padding-bottom: 0.55rem;
+      flex-shrink: 0;
+    }
+
+    .journal-header h2 {
+      font-size: 1.05rem;
+      font-weight: normal;
+      letter-spacing: 0.06em;
+    }
+
+    .journal-meta {
+      font-size: 0.72rem;
+      opacity: 0.65;
+      font-style: italic;
+    }
+
+    #journal-close {
+      position: absolute;
+      top: 0.7rem;
+      right: 0.85rem;
+      border: none;
+      background: transparent;
+      color: #7a6252;
+      font-size: 1.2rem;
+      cursor: pointer;
+      line-height: 1;
+      padding: 0.25rem;
+    }
+
+    .journal-sheet { position: relative; }
+
+    #journal-pages {
+      flex: 1 1 auto;
+      min-height: 0;
+      max-height: 100%;
+      overflow-y: auto;
+      overflow-x: hidden;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      padding-right: 0.45rem;
+      margin-right: -0.15rem;
+    }
+
+    #journal-pages::-webkit-scrollbar {
+      width: 6px;
+    }
+    #journal-pages::-webkit-scrollbar-thumb {
+      background: rgba(90, 60, 40, 0.25);
+      border-radius: 999px;
+    }
+
+    .journal-entry {
+      animation: entryIn 0.45s ease;
+    }
+
+    .journal-entry.new-ink {
+      outline: 1px solid rgba(200, 140, 110, 0.35);
+      outline-offset: 4px;
+      border-radius: 4px;
+    }
+
+    @keyframes entryIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .journal-entry .tag {
+      font-size: 0.68rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      opacity: 0.55;
+      margin-bottom: 0.2rem;
+    }
+
+    .journal-entry .tag.room { color: #7a6550; }
+    .journal-entry .tag.self { color: #8a5a4a; }
+
+    .journal-entry p {
+      font-size: 0.95rem;
+      line-height: 1.45;
+    }
+
+    .journal-empty {
+      font-size: 0.9rem;
+      font-style: italic;
+      opacity: 0.7;
+      line-height: 1.5;
+      padding: 0.5rem 0;
+    }
+
+    .journal-footer {
+      font-size: 0.72rem;
+      opacity: 0.55;
+      border-top: 1px solid rgba(90, 60, 40, 0.12);
+      padding-top: 0.55rem;
+      font-style: italic;
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+      flex-shrink: 0;
+    }
+
+    .journal-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      font-style: normal;
+    }
+
+    .journal-actions button {
+      font-family: inherit;
+      font-size: 0.78rem;
+      letter-spacing: 0.03em;
+      border: 1px solid rgba(90, 60, 40, 0.22);
+      background: rgba(255, 248, 240, 0.75);
+      color: #5a4638;
+      border-radius: 999px;
+      padding: 0.4rem 0.85rem;
+      cursor: pointer;
+      transition: background 0.2s ease, transform 0.15s ease;
+    }
+
+    .journal-actions button:hover {
+      background: #fff8f0;
+      transform: translateY(-1px);
+    }
+
+    .journal-actions button:disabled {
+      opacity: 0.55;
+      cursor: wait;
+      transform: none;
+    }
+
+    #report-panel {
+      position: absolute;
+      inset: 0;
+      z-index: 55;
+      display: grid;
+      place-items: center;
+      background: rgba(28, 20, 16, 0.5);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.35s ease;
+    }
+
+    #report-panel.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .report-sheet {
+      position: relative;
+      width: min(460px, 90%);
+      max-height: min(560px, 84%);
+      overflow: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
+      user-select: text;
+      -webkit-user-select: text;
+      background: linear-gradient(165deg, #f8efe4, #eddcc8 55%, #e6d2bc);
+      border-radius: 12px;
+      box-shadow: 0 28px 70px rgba(0,0,0,0.4);
+      padding: 1.4rem 1.35rem 1.2rem;
+      color: #4f3d32;
+      transform: translateY(12px);
+      transition: transform 0.35s ease;
+    }
+
+    #report-panel.open .report-sheet { transform: translateY(0); }
+
+    .report-sheet h2 {
+      font-weight: normal;
+      letter-spacing: 0.05em;
+      font-size: 1.15rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .report-source {
+      font-size: 0.7rem;
+      opacity: 0.6;
+      font-style: italic;
+      margin-bottom: 0.85rem;
+    }
+
+    #report-body {
+      font-size: 0.95rem;
+      line-height: 1.55;
+      white-space: pre-wrap;
+    }
+
+    #report-body p { margin-bottom: 0.75rem; }
+
+    .report-traits {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.4rem 0.75rem;
+      margin: 0.85rem 0 1rem;
+      font-size: 0.78rem;
+    }
+
+    .report-traits div {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0.35rem 0.45rem;
+      background: rgba(255,255,255,0.35);
+      border-radius: 6px;
+    }
+
+    .report-traits .bar {
+      flex: 1;
+      height: 4px;
+      align-self: center;
+      background: rgba(90,60,40,0.12);
+      border-radius: 2px;
+      overflow: hidden;
+      margin: 0 0.35rem;
+    }
+
+    .report-traits .bar span {
+      display: block;
+      height: 100%;
+      background: #c47868;
+      border-radius: 2px;
+    }
+
+    #report-close {
+      position: absolute;
+      top: 0.65rem;
+      right: 0.75rem;
+      border: none;
+      background: transparent;
+      font-size: 1.25rem;
+      color: #7a6252;
+      cursor: pointer;
+    }
+
+    .report-key-row {
+      margin-top: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      font-size: 0.72rem;
+      opacity: 0.85;
+    }
+
+    .report-key-row input {
+      font-family: inherit;
+      font-size: 0.75rem;
+      padding: 0.4rem 0.5rem;
+      border: 1px solid rgba(90,60,40,0.2);
+      border-radius: 6px;
+      background: rgba(255,255,255,0.55);
+      color: #5a4638;
+    }
+
+    /* Door */
+    #door {
+      position: absolute;
+      left: 1.5%;
+      top: 28%;
+      width: 9%;
+      height: 30%;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      z-index: 8;
+      background: transparent;
+      touch-action: manipulation;
+    }
+    #door .door-panel {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, #8b6a52 0%, #a67c5c 18%, #b88968 55%, #9a704f 100%);
+      border-radius: 4px 8px 4px 4px;
+      box-shadow: 0 8px 18px rgba(0,0,0,0.18), inset 0 0 0 2px rgba(255,230,200,0.12);
+      position: relative;
+      transition: transform 0.25s ease, filter 0.25s ease;
+    }
+    #door .door-panel::before {
+      content: "";
+      position: absolute;
+      right: 18%;
+      top: 48%;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #e8c878;
+      box-shadow: 0 0 6px rgba(255, 220, 140, 0.6);
+    }
+    #door .door-panel::after {
+      content: "";
+      position: absolute;
+      left: 12%;
+      right: 12%;
+      top: 10%;
+      bottom: 10%;
+      border: 1px solid rgba(60,40,30,0.18);
+      border-radius: 2px;
+    }
+    #door:hover .door-panel { transform: translateX(-2px); filter: brightness(1.06); }
+    #door-label {
+      position: absolute;
+      left: 110%;
+      top: 42%;
+      font-size: 0.62rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(90,70,56,0.55);
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity 0.25s ease;
+      pointer-events: none;
+    }
+    #door:hover #door-label { opacity: 1; }
+
+    #camera-btn {
+      pointer-events: auto;
+      width: 52px;
+      height: 52px;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      background: rgba(42, 34, 28, 0.35);
+      box-shadow: 0 10px 28px rgba(0,0,0,0.35);
+      backdrop-filter: blur(6px);
+      color: #f7ebe3;
+      font-size: 1.25rem;
+      display: grid;
+      place-items: center;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: transform 0.2s ease, background 0.2s ease, opacity 0.4s ease;
+      pointer-events: none;
+    }
+    #camera-btn.visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+    #camera-btn.visible.pulse-invite {
+      animation: camInvite 1.7s ease-in-out infinite;
+    }
+    @keyframes camInvite {
+      0%, 100% { box-shadow: 0 10px 28px rgba(0,0,0,0.35); transform: translateY(0) scale(1); }
+      50% { box-shadow: 0 10px 28px rgba(0,0,0,0.35), 0 0 0 6px rgba(255, 220, 170, 0.28); transform: translateY(-2px) scale(1.06); }
+    }
+    #camera-btn:hover { transform: translateY(-2px) scale(1.04); background: rgba(60,48,40,0.5); animation: none; }
+    #camera-btn:disabled {
+      opacity: 0.55;
+      cursor: wait;
+    }
+
+    #leave-panel {
+      position: absolute;
+      inset: 0;
+      z-index: 75;
+      display: grid;
+      place-items: center;
+      background: rgba(28, 20, 16, 0.55);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.35s ease;
+    }
+    #leave-panel.open { opacity: 1; pointer-events: auto; }
+    .leave-sheet {
+      width: min(380px, 88%);
+      background: linear-gradient(165deg, #f8efe4, #eddcc8);
+      border-radius: 14px;
+      padding: 1.4rem 1.3rem 1.2rem;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.4);
+      color: #4f3d32;
+      text-align: center;
+    }
+    .leave-sheet h2 { font-weight: normal; letter-spacing: 0.05em; margin-bottom: 0.55rem; }
+    .leave-sheet p { font-size: 0.92rem; line-height: 1.5; opacity: 0.9; margin-bottom: 1rem; }
+    .leave-actions { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; }
+    .leave-actions button {
+      font-family: inherit;
+      font-size: 0.82rem;
+      border-radius: 999px;
+      padding: 0.45rem 0.95rem;
+      cursor: pointer;
+      border: 1px solid rgba(90,60,40,0.22);
+      background: rgba(255,248,240,0.85);
+      color: #5a4638;
+    }
+    .leave-actions button.primary {
+      background: #c47868;
+      color: #fff8f0;
+      border-color: transparent;
+    }
+
+    #photo-panel {
+      position: absolute;
+      inset: 0;
+      z-index: 80;
+      display: grid;
+      place-items: center;
+      background: rgba(20,14,12,0.62);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.35s ease;
+    }
+    #photo-panel.open { opacity: 1; pointer-events: auto; }
+    .photo-sheet {
+      position: relative;
+      background: #f7efe6;
+      padding: 0.75rem 0.75rem 1.1rem;
+      border-radius: 4px;
+      box-shadow: 0 28px 70px rgba(0,0,0,0.45);
+      transform: rotate(-1.5deg);
+      max-width: min(460px, 92%);
+      max-height: min(92vh, 920px);
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+    .photo-sheet canvas {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+      left: -9999px;
+    }
+    .photo-portrait {
+      position: relative;
+      width: min(480px, 84vw);
+      aspect-ratio: 840 / 560;
+      overflow: hidden;
+      border-radius: 2px;
+      background:
+        radial-gradient(ellipse at 50% 35%, rgba(255,255,255,0.35), transparent 55%),
+        linear-gradient(180deg, #c8dce8 0%, #e8d5c4 46%, #c4a484 100%);
+      box-shadow: inset 0 0 40px rgba(60,40,30,0.12);
+    }
+    .photo-portrait.mode-room {
+      background: #241c18;
+    }
+    .photo-portrait .room-capture-frame {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+    .photo-portrait .room-shot {
+      position: absolute;
+      top: 0;
+      left: 0;
+      margin: 0;
+      transform-origin: top left;
+      pointer-events: none;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .photo-portrait .room-shot #door,
+    .photo-portrait .room-shot button {
+      pointer-events: none !important;
+    }
+    .photo-portrait .room-caption-pill {
+      position: absolute;
+      left: 50%;
+      bottom: 10px;
+      transform: translateX(-50%);
+      z-index: 8;
+      background: rgba(40,28,22,0.72);
+      color: #f7ebe3;
+      font-size: 0.82rem;
+      padding: 0.35rem 1rem;
+      border-radius: 999px;
+      white-space: nowrap;
+      max-width: 92%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      pointer-events: none;
+    }
+    .photo-portrait .portrait-stage {
+      position: absolute;
+      inset: 0;
+    }
+    .photo-portrait .portrait-monster {
+      position: absolute;
+      left: 50%;
+      top: 54%;
+      width: 72px;
+      height: 78px;
+      transform: translate(-50%, -50%) scale(4.6);
+      transform-origin: center center;
+      z-index: 5;
+      pointer-events: none;
+    }
+    .photo-portrait .portrait-monster .mood-chip {
+      font-size: 0.62rem;
+      max-width: 150px;
+      transform: translateX(-50%) scale(0.92);
+    }
+    .photo-portrait .portrait-obj {
+      position: absolute;
+      font-size: clamp(2.4rem, 8vw, 3.6rem);
+      line-height: 1;
+      transform: translate(-50%, -50%);
+      z-index: 4;
+      pointer-events: none;
+      filter: drop-shadow(0 8px 12px rgba(0,0,0,0.22));
+    }
+    .photo-portrait .portrait-title {
+      position: absolute;
+      left: 50%;
+      bottom: 12px;
+      transform: translateX(-50%);
+      z-index: 6;
+      background: rgba(40,28,22,0.72);
+      color: #f7ebe3;
+      font-size: 0.85rem;
+      padding: 0.35rem 1rem;
+      border-radius: 999px;
+      white-space: nowrap;
+      max-width: 90%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      pointer-events: none;
+    }
+    .photo-caption {
+      margin-top: 0.55rem;
+      text-align: center;
+      font-size: 0.78rem;
+      color: #6a5648;
+      font-style: italic;
+    }
+    .photo-status {
+      text-align: center;
+      font-size: 0.75rem;
+      color: #8a7060;
+      margin-top: 0.35rem;
+      min-height: 1em;
+    }
+    .photo-actions {
+      margin-top: 0.65rem;
+      display: flex;
+      gap: 0.45rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .photo-actions button {
+      font-family: inherit;
+      font-size: 0.78rem;
+      border-radius: 999px;
+      padding: 0.4rem 0.85rem;
+      cursor: pointer;
+      border: 1px solid rgba(90,60,40,0.22);
+      background: #fff8f0;
+      color: #5a4638;
+    }
+    .photo-actions button.primary {
+      background: #c47868;
+      color: #fff8f0;
+      border-color: transparent;
+    }
+    .photo-actions button:disabled {
+      opacity: 0.55;
+      cursor: default;
+    }
+
+    .photo-unlock {
+      margin-top: 0.7rem;
+      padding: 0.7rem 0.75rem 0.8rem;
+      border-radius: 10px;
+      background: linear-gradient(165deg, rgba(255,248,240,0.95), rgba(232,210,190,0.55));
+      border: 1px solid rgba(90,60,40,0.14);
+      text-align: left;
+      color: #5a4638;
+    }
+    .photo-unlock[hidden] { display: none !important; }
+    .photo-unlock-title {
+      font-size: 0.82rem;
+      font-weight: 600;
+      margin-bottom: 0.2rem;
+    }
+    .photo-unlock-lead {
+      font-size: 0.72rem;
+      line-height: 1.4;
+      color: #6a5648;
+      margin-bottom: 0.55rem;
+    }
+    .photo-unlock-steps {
+      list-style: none;
+      margin: 0 0 0.65rem;
+      padding: 0;
+      display: grid;
+      gap: 0.4rem;
+      counter-reset: unlock-step;
+    }
+    .photo-unlock-steps li {
+      position: relative;
+      padding: 0.35rem 0.45rem 0.35rem 1.85rem;
+      font-size: 0.72rem;
+      line-height: 1.35;
+      background: rgba(255,255,255,0.45);
+      border-radius: 8px;
+      counter-increment: unlock-step;
+    }
+    .photo-unlock-steps li::before {
+      content: counter(unlock-step);
+      position: absolute;
+      left: 0.4rem;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 1.1rem;
+      height: 1.1rem;
+      border-radius: 50%;
+      background: #c47868;
+      color: #fff8f0;
+      font-size: 0.65rem;
+      font-weight: 700;
+      display: grid;
+      place-items: center;
+    }
+    .photo-unlock-cta {
+      width: 100%;
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 999px;
+      padding: 0.55rem 0.9rem;
+      cursor: pointer;
+      background: #5fad93;
+      color: #fff8f0;
+      margin-bottom: 0.55rem;
+    }
+    .photo-unlock-cta:hover { filter: brightness(1.05); }
+    .photo-unlock-paste {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+    .photo-unlock-paste label {
+      font-size: 0.7rem;
+      color: #6a5648;
+    }
+    .photo-unlock-paste input {
+      font-family: inherit;
+      font-size: 0.75rem;
+      padding: 0.45rem 0.55rem;
+      border: 1px solid rgba(90,60,40,0.2);
+      border-radius: 8px;
+      background: rgba(255,255,255,0.8);
+      color: #5a4638;
+    }
+    .photo-unlock-row {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+      margin-top: 0.15rem;
+    }
+    .photo-unlock-row button {
+      font-family: inherit;
+      font-size: 0.75rem;
+      border-radius: 999px;
+      padding: 0.4rem 0.8rem;
+      cursor: pointer;
+      border: 1px solid rgba(90,60,40,0.22);
+      background: #fff8f0;
+      color: #5a4638;
+    }
+    .photo-unlock-row button.primary {
+      background: #c47868;
+      color: #fff8f0;
+      border-color: transparent;
+      flex: 1;
+      min-width: 10rem;
+    }
+    .photo-unlock-note {
+      margin-top: 0.45rem;
+      font-size: 0.65rem;
+      line-height: 1.35;
+      color: #8a7060;
+    }
+    .photo-ready {
+      margin-top: 0.55rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      font-size: 0.72rem;
+      color: #5f7a68;
+      padding: 0.35rem 0.15rem 0;
+    }
+    .photo-ready[hidden] { display: none !important; }
+    .photo-ready button {
+      font-family: inherit;
+      font-size: 0.7rem;
+      border: none;
+      background: transparent;
+      color: #8a5a4a;
+      text-decoration: underline;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .journal-entry .tag.metaphor { color: #7a5a88; }
+    .metaphor-card {
+      margin: 0.5rem 0 0.85rem;
+      padding: 0.7rem 0.75rem;
+      background: rgba(255,255,255,0.4);
+      border-left: 3px solid #c47868;
+      border-radius: 0 8px 8px 0;
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }
+    .metaphor-card strong {
+      display: block;
+      font-weight: normal;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.25rem;
+      color: #8a5a4a;
+    }
+    .metaphor-card.wants {
+      border-left-color: #7a9cbc;
+      background: rgba(200, 220, 240, 0.38);
+    }
+    .metaphor-card.wants strong { color: #5a7088; }
+    .metaphor-card.subcon {
+      border-left-color: #c47868;
+      background: rgba(255, 240, 230, 0.45);
+    }
+    .report-section-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #7a6550;
+      margin: 0.85rem 0 0.35rem;
+    }
+    .report-hint {
+      font-size: 0.75rem;
+      font-style: italic;
+      color: #8a7060;
+      margin: 0 0 0.55rem;
+      line-height: 1.4;
+    }
+
+  </style>
+</head>
+<body>
+  <div id="stage">
+    <div id="room">
+      <div id="atmosphere" aria-hidden="true"></div>
+      <div id="mood-veil" aria-hidden="true"></div>
+      <div id="dust" aria-hidden="true"></div>
+
+      <div id="calm-hud" aria-live="polite">
+        <span id="calm-label">restless</span>
+        <div class="calm-bar" title="Cookie temper">
+          <i id="calm-fill"></i>
+        </div>
+      </div>
+
+      <div class="window">
+        <div class="curtain left"></div>
+        <div class="curtain right"></div>
+        <div class="window-sill"></div>
+      </div>
+
+      <div class="bed" aria-hidden="true"></div>
+      <div class="table" aria-hidden="true"></div>
+      <div class="rug" aria-hidden="true"></div>
+      <div class="nest-pile" id="nestPile" aria-hidden="true"></div>
+
+      <div class="trace trace-hearts" id="traceHearts" aria-hidden="true">˚ ᵕ ˚</div>
+      <div class="trace trace-grid" id="traceGrid" aria-hidden="true"></div>
+      <div class="trace trace-stars" id="traceStars" aria-hidden="true">✧ · ✦</div>
+      <div class="trace trace-yarn" id="traceYarn" aria-hidden="true"></div>
+
+      <button type="button" id="door" aria-label="Leave and begin again" title="Leave & begin again">
+        <span class="door-panel" aria-hidden="true"></span>
+        <span id="door-label">Leave</span>
+      </button>
+
+      <div class="obj" id="obj-book" data-obj="book" style="left:72%; top:62%;">📖</div>
+      <div class="obj" id="obj-mug" data-obj="mug" style="left:78%; top:54%;">☕️</div>
+      <div class="obj" id="obj-plant" data-obj="plant" style="left:18%; top:48%;">🪴</div>
+      <div class="obj" id="obj-ball" data-obj="ball" style="left:48%; top:72%;">🧶</div>
+      <div class="obj" id="obj-candle" data-obj="candle" style="left:66%; top:52%;">🕯️</div>
+      <div class="obj" id="obj-star" data-obj="star" style="left:28%; top:70%;">⭐</div>
+      <div class="obj" id="obj-cushion" data-obj="cushion" style="left:22%; top:62%;">🧸</div>
+      <div class="obj" id="obj-clock" data-obj="clock" style="left:84%; top:46%;">🕰️</div>
+      <div class="obj" id="obj-shell" data-obj="shell" style="left:40%; top:58%;">🐚</div>
+
+      <div id="monster" class="monster idle" style="left:58%; top:68%;">
+        <div class="mood-aura" aria-hidden="true"></div>
+        <div class="mood-chip" id="mood-chip">Hearth-Drowsing Sprite</div>
+        <div class="plush">
+          <div class="plush-body">
+            <span class="cookie-chip c1" aria-hidden="true"></span>
+            <span class="cookie-chip c2" aria-hidden="true"></span>
+            <span class="cookie-chip c3" aria-hidden="true"></span>
+            <span class="cookie-chip c4" aria-hidden="true"></span>
+            <span class="cookie-chip c5" aria-hidden="true"></span>
+            <div class="plush-eye l"></div>
+            <div class="plush-eye r"></div>
+            <div class="plush-blush l"></div>
+            <div class="plush-blush r"></div>
+            <div class="plush-mouth"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="room-title" aria-hidden="true">
+        <h1>The Little Monster in the Room</h1>
+        <p>soothe the temper · frame your ideal</p>
+      </div>
+
+      <div id="overlay">
+        <div id="overlay-card">
+          <div id="overlay-title"></div>
+          <div id="overlay-subtitle"></div>
+          <div id="overlay-text"></div>
+        </div>
+      </div>
+      <div id="mirror-text"></div>
+      <div id="float-note"></div>
+      <div id="hint-text"></div>
+    </div>
+
+    <div id="journal-dock">
+      <button type="button" id="camera-btn" aria-label="Photograph your ideal room" title="Photograph the whole room">📷</button>
+      <button type="button" id="journal-btn" aria-label="Open the tiny journal" title="Journal">
+        <span class="book" aria-hidden="true"></span>
+        <span id="journal-badge" aria-hidden="true"></span>
+      </button>
+      <span class="journal-dock-label" id="journal-dock-label">Journal</span>
+    </div>
+
+    <div id="journal-panel" role="dialog" aria-modal="true" aria-labelledby="journal-title" hidden>
+      <div class="journal-sheet">
+        <button type="button" id="journal-close" aria-label="Close journal">×</button>
+        <div class="journal-header">
+          <h2 id="journal-title">Tiny journal</h2>
+          <span class="journal-meta" id="journal-count"></span>
+        </div>
+        <div id="journal-pages"></div>
+        <div class="journal-footer">
+          <div class="journal-actions">
+            <button type="button" id="summary-btn">Personality summary</button>
+          </div>
+          <span>Wishes in photos. Patterns in play.</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="report-panel" role="dialog" aria-modal="true" aria-labelledby="report-title" hidden>
+      <div class="report-sheet">
+        <button type="button" id="report-close" aria-label="Close summary">×</button>
+        <h2 id="report-title">Wants &amp; undercurrents</h2>
+        <div class="report-source" id="report-source"></div>
+        <div class="report-traits" id="report-traits"></div>
+        <div id="report-body"></div>
+        <div class="report-key-row" id="report-key-row">
+          <label for="llm-key">Optional free Groq API key (for AI-written reflection)</label>
+          <input id="llm-key" type="password" placeholder="gsk_… pasted here, kept only in this browser" autocomplete="off" />
+          <button type="button" id="summary-ai-btn" style="align-self:start;font-family:inherit;font-size:0.78rem;border:1px solid rgba(90,60,40,0.22);background:rgba(255,248,240,0.75);border-radius:999px;padding:0.4rem 0.85rem;cursor:pointer;width:fit-content;color:#5a4638;">Rewrite with AI</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="leave-panel" role="dialog" aria-modal="true" hidden>
+      <div class="leave-sheet">
+        <h2>Open the door?</h2>
+        <p>If this room does not feel like you, you may leave and return another time. The room will forget this arrangement and wait to meet you newly.</p>
+        <div class="leave-actions">
+          <button type="button" id="leave-cancel">Stay</button>
+          <button type="button" class="primary" id="leave-confirm">Leave & begin again</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="photo-panel" role="dialog" aria-modal="true" hidden>
+      <div class="photo-sheet">
+        <div class="photo-portrait" id="photo-portrait" aria-hidden="true"></div>
+        <canvas id="photo-canvas" width="840" height="560"></canvas>
+        <div class="photo-caption" id="photo-caption">A keepsake of your ideal room</div>
+        <div class="photo-status" id="photo-status"></div>
+
+        <div class="photo-unlock" id="photo-unlock" hidden>
+          <div class="photo-unlock-title">Realistic felt photos aren’t set up yet</div>
+          <p class="photo-unlock-lead">You still get a zoomed portrait of your cookie. The site owner can add a free Pollinations pass for optional AI felt versions.</p>
+          <p class="photo-unlock-note">Owner tip: create a free <code>pk_</code> key at <a href="https://enter.pollinations.ai/keys" target="_blank" rel="noopener">enter.pollinations.ai/keys</a> and paste it into <code>SITE_IMG_KEY</code> in the page.</p>
+        </div>
+
+        <div class="photo-actions">
+          <button type="button" class="primary" id="photo-zoom">Zoom into cookie</button>
+          <button type="button" id="photo-regen">Retake room</button>
+          <button type="button" id="photo-ai" hidden>Make realistic felt photo</button>
+          <button type="button" id="photo-download">Save keepsake</button>
+          <button type="button" id="photo-close">Close</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+(() => {
+  const room = document.getElementById("room");
+  const stage = document.getElementById("stage");
+  const monster = document.getElementById("monster");
+  const overlay = document.getElementById("overlay");
+  const overlayTitle = document.getElementById("overlay-title");
+  const overlaySubtitle = document.getElementById("overlay-subtitle");
+  const overlayText = document.getElementById("overlay-text");
+  const mirrorText = document.getElementById("mirror-text");
+  const hintText = document.getElementById("hint-text");
+  const floatNote = document.getElementById("float-note");
+  const roomTitle = document.getElementById("room-title");
+  const nestPile = document.getElementById("nestPile");
+  const getObjects = () => [...document.querySelectorAll(".obj")];
+  let objects = getObjects();
+  const plush = monster.querySelector(".plush");
+  const journalBtn = document.getElementById("journal-btn");
+  const journalPanel = document.getElementById("journal-panel");
+  const journalPages = document.getElementById("journal-pages");
+  const journalCount = document.getElementById("journal-count");
+  const journalClose = document.getElementById("journal-close");
+  const summaryBtn = document.getElementById("summary-btn");
+  const reportPanel = document.getElementById("report-panel");
+  const reportBody = document.getElementById("report-body");
+  const reportSource = document.getElementById("report-source");
+  const reportTraits = document.getElementById("report-traits");
+  const reportClose = document.getElementById("report-close");
+  const summaryAiBtn = document.getElementById("summary-ai-btn");
+  const llmKeyInput = document.getElementById("llm-key");
+  const moodChip = document.getElementById("mood-chip");
+  const doorBtn = document.getElementById("door");
+  const leavePanel = document.getElementById("leave-panel");
+  const leaveCancel = document.getElementById("leave-cancel");
+  const leaveConfirm = document.getElementById("leave-confirm");
+  const cameraBtn = document.getElementById("camera-btn");
+  const photoPanel = document.getElementById("photo-panel");
+  const photoCanvas = document.getElementById("photo-canvas");
+  const photoPortrait = document.getElementById("photo-portrait");
+  const photoCaption = document.getElementById("photo-caption");
+  const photoDownload = document.getElementById("photo-download");
+  const photoClose = document.getElementById("photo-close");
+  const photoStatus = document.getElementById("photo-status");
+  const photoRegen = document.getElementById("photo-regen");
+  const photoZoom = document.getElementById("photo-zoom");
+  const photoAi = document.getElementById("photo-ai");
+  const photoUnlock = document.getElementById("photo-unlock");
+  // One free Pollinations publishable key (pk_…) powers optional realistic felt photos for every visitor.
+  // Create at https://enter.pollinations.ai/keys — prefer pk_ (safe for browsers). Do not use sk_ in this file.
+  const SITE_IMG_KEY = "";
+  let lastPhotoScene = null;
+  let lastPhotoProfile = null;
+  let photoMode = "room"; // "room" | "cookie"
+  let wantsCapture = null;
+  const traces = {
+    hearts: document.getElementById("traceHearts"),
+    grid: document.getElementById("traceGrid"),
+    stars: document.getElementById("traceStars"),
+    yarn: document.getElementById("traceYarn"),
+  };
+
+  const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+  const rand = (a = 0, b = 1) => a + Math.random() * (b - a);
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const now = () => performance.now();
+
+  const traits = {
+    gentleness: 0,
+    curiosity: 0,
+    control: 0,
+    avoidance: 0,
+  };
+
+  const state = {
+    monsterState: "idle",
+    interactive: false,
+    pointer: { x: 0.5, y: 0.5 },
+    lastInteractAt: 0,
+    lastObserveBump: 0,
+    petStreak: 0,
+    giftsAccepted: 0,
+    organizeCount: 0,
+    totalActions: 0,
+    pets: 0,
+    drags: 0,
+    gives: 0,
+    nudgeFired: { 1: false, 2: false, 3: false, 4: false },
+    recentActions: [],
+    attachedGifts: new Set(),
+    targetExplore: null,
+    autonomyCooldownUntil: 0,
+    atmosphere: null,
+    reflectionIndex: 0,
+    reflectionsShown: new Set(),
+    finalMirrorShown: false,
+    lastReflectionAt: 0,
+    journeyStartedAt: 0,
+    unlockedJournal: new Set(),
+    unreadJournal: new Set(),
+    journalOpen: false,
+    discoveries: new Set(),
+    rewardMilestones: new Set(),
+    unlockedDecor: new Set(),
+    mysteryCooldownUntil: 0,
+    onboardingDone: false,
+    calm: 18,
+    calmMethods: { softPet: 0, gift: 0, patience: 0, order: 0, space: 0 },
+    petPace: [],
+    lastPatienceAt: 0,
+    lastSpaceCalmAt: 0,
+    mischiefCount: 0,
+  };
+
+  const dust = document.getElementById("dust");
+  const calmHud = document.getElementById("calm-hud");
+  const calmLabelEl = document.getElementById("calm-label");
+  const calmFill = document.getElementById("calm-fill");
+
+  const ORDERED_SLOTS = [
+    { left: 72, top: 55 },
+    { left: 80, top: 55 },
+    { left: 16, top: 50 },
+    { left: 50, top: 70 },
+    { left: 64, top: 52 },
+    { left: 30, top: 68 },
+    { left: 24, top: 60 },
+    { left: 86, top: 48 },
+    { left: 42, top: 58 },
+  ];
+
+  const DEFAULT_LAYOUT = {
+    "obj-book": [72, 62],
+    "obj-mug": [78, 54],
+    "obj-plant": [18, 48],
+    "obj-ball": [48, 72],
+    "obj-candle": [66, 52],
+    "obj-star": [28, 70],
+    "obj-cushion": [22, 62],
+    "obj-clock": [84, 46],
+    "obj-shell": [40, 58],
+    monster: [61, 64],
+  };
+
+  const METAPHORS = {
+    gentleness: {
+      name: "The Lantern Keeper",
+      need: "to feel that softness is allowed to stay",
+      text: "In the story-book of you, you appear as The Lantern Keeper — a small figure who warms cold corners with quiet light. Your inner need is not applause; it is permission for tenderness to remain without disappearing.",
+    },
+    control: {
+      name: "The Map Folder",
+      need: "to feel the world will hold still long enough to rest",
+      text: "In the story-book of you, you appear as The Map Folder — careful hands creasing chaos into readable lines. Your inner need is safety through shape: if things sit where they belong, your heart can finally unclench.",
+    },
+    curiosity: {
+      name: "The Moon Pocket Collector",
+      need: "to keep wondering without being rushed to conclude",
+      text: "In the story-book of you, you appear as The Moon Pocket Collector — gathering unanswered glimmers in a coat lined with night-sky. Your inner need is spacious wonder: questions as companions, not problems to finish.",
+    },
+    avoidance: {
+      name: "The Threshold Fox",
+      need: "to approach closeness at a pace that still feels like choice",
+      text: "In the story-book of you, you appear as The Threshold Fox — half in the warm room, half tasting the open air. Your inner need is chosen nearness: distance as a doorway, not a wall forever.",
+    },
+    mixed: {
+      name: "The Patchwork Traveler",
+      need: "to be many soft truths at once",
+      text: "In the story-book of you, you appear as The Patchwork Traveler — stitched from more than one weather. Your inner need is to be allowed complexity: soft and ordered, curious and careful, without choosing only one costume.",
+    },
+  };
+
+  const ARRANGE_METAPHORS = {
+    ordered: {
+      name: "The Shelf of Quiet Stars",
+      text: "Your arranging hand builds The Shelf of Quiet Stars — things lined so the night feels countable. Pattern-wise, you seek calm by giving every object a trustworthy place.",
+    },
+    nest: {
+      name: "The Teacup Nest",
+      text: "Your arranging hand builds The Teacup Nest — treasures gathered close like warm spoons. Pattern-wise, you pull the world inward until it feels companionable.",
+    },
+    scatter: {
+      name: "The Meadow of Loose Buttons",
+      text: "Your arranging hand leaves The Meadow of Loose Buttons — charmingly unruled. Pattern-wise, you trust life more when it is allowed to wander.",
+    },
+    clustered: {
+      name: "The Whisper Circle",
+      text: "Your arranging hand makes The Whisper Circle — objects leaning toward one another as if gossiping kindly. Pattern-wise, you prefer company over isolation, even for things.",
+    },
+  };
+
+  /* Rewards unlock a secret journal note + a keepable decor item */
+  const REWARD_GIFTS = {
+    "warmth-crumbs": {
+      noteId: "secret-warmth",
+      decor: { id: "obj-ribbon", key: "ribbon", emoji: "🎀", label: "soft ribbon", left: 54, top: 58 },
+    },
+    "gift-glow": {
+      noteId: "secret-letter",
+      decor: { id: "obj-letter", key: "letter", emoji: "💌", label: "tiny letter", left: 36, top: 64 },
+    },
+    "arrange-sparkle": {
+      noteId: "secret-frame",
+      decor: { id: "obj-frame", key: "frame", emoji: "🖼️", label: "little frame", left: 70, top: 48 },
+    },
+    "play-depth": {
+      noteId: "secret-key",
+      decor: { id: "obj-key", key: "key", emoji: "🗝️", label: "brass key", left: 24, top: 54 },
+    },
+    "gentle-dance": {
+      noteId: "secret-jar",
+      decor: { id: "obj-jar", key: "jar", emoji: "🫧", label: "wish jar", left: 60, top: 70 },
+    },
+    "wonder-sky": {
+      noteId: "secret-moon",
+      decor: { id: "obj-moon", key: "moon", emoji: "🌙", label: "pocket moon", left: 16, top: 60 },
+    },
+    "blink-move": {
+      noteId: "secret-mirror",
+      decor: { id: "obj-mirror", key: "mirror", emoji: "🪞", label: "whisper mirror", left: 78, top: 62 },
+    },
+    "star-sky": {
+      noteId: "secret-lantern",
+      decor: { id: "obj-lantern", key: "lantern", emoji: "🏮", label: "paper lantern", left: 44, top: 50 },
+    },
+    "crumb-found": {
+      noteId: "secret-crumb-note",
+      decor: { id: "obj-bitecookie", key: "bitecookie", emoji: "🍪", label: "spare cookie", left: 48, top: 66 },
+    },
+    "first-capture": {
+      noteId: "secret-snapshot",
+      decor: { id: "obj-polaroid", key: "polaroid", emoji: "📸", label: "room snapshot", left: 82, top: 56 },
+    },
+  };
+
+  /* Mirror lines speak about the room / creature — never label the player */
+  const REFLECTIONS = {
+    gentleness: [
+      "The light learned to stay a little longer.",
+      "Softness gathered in the corners.",
+      "It leans closer when the room feels kind.",
+    ],
+    control: [
+      "Things keep returning to neat places.",
+      "The room holds its breath in straight lines.",
+      "Even the monster notices where everything must sit.",
+    ],
+    curiosity: [
+      "The window keeps changing its mind about the sky.",
+      "Something in here wants to be discovered again.",
+      "The room rearranges itself around questions.",
+    ],
+    avoidance: [
+      "A small place formed for waiting.",
+      "Quiet made a nest of its own.",
+      "Distance turned into a kind of closeness.",
+    ],
+    mixed: [
+      "The room is starting to look like a story.",
+      "Traces remain where hands have been.",
+    ],
+    finale: [
+      "This room remembers how it was touched.",
+      "Maybe changing it was never only one way.",
+      "Look around — something here looks back.",
+    ],
+  };
+
+  /* Journal: room notes unlock first; self notes arrive later — soft, never diagnostic labels */
+  const JOURNAL_ENTRIES = [
+    {
+      id: "how-to-begin",
+      kind: "room",
+      when: () => state.interactive,
+      text: "Invitation: arrange this room into the version you wish were true. Find the cookie face that feels like your ideal mood. Then take a picture — that keepsake is what you want. How you keep playing shows quieter patterns.",
+    },
+    {
+      id: "first-touch",
+      kind: "room",
+      when: () => state.totalActions >= 1,
+      text: "A hand entered the room. Something shifted, even before anything moved.",
+    },
+    {
+      id: "room-pet",
+      kind: "room",
+      when: () => state.pets >= 3,
+      text: "Warmth collects where the monster is touched. The light leans in a little.",
+    },
+    {
+      id: "self-pet",
+      kind: "self",
+      when: () => state.pets >= 6 || traits.gentleness >= 20,
+      text: "You reach for softness again and again. Care is becoming a habit your hands already know.",
+    },
+    {
+      id: "room-order",
+      kind: "room",
+      when: () => state.organizeCount >= 2 || traits.control >= 14,
+      text: "Objects drift toward invisible lines. The room is learning a stricter shape.",
+    },
+    {
+      id: "self-order",
+      kind: "self",
+      when: () => state.organizeCount >= 4 || (traits.control >= 22 && state.drags >= 5),
+      text: "You seem calmer when things sit where you placed them. Order may be how you ask the world to feel safe.",
+    },
+    {
+      id: "room-drag",
+      kind: "room",
+      when: () => state.drags >= 4,
+      text: "Furniture remembers being moved. The monster sometimes refuses to stay.",
+    },
+    {
+      id: "self-drag",
+      kind: "self",
+      when: () => traits.control >= 26 && state.drags >= 7,
+      text: "When something won't obey, you try again. Control and care can wear the same gloves.",
+    },
+    {
+      id: "room-gift",
+      kind: "room",
+      when: () => state.gives >= 1 || state.giftsAccepted >= 1,
+      text: "An object crossed the distance between you and it. The corner began to feel shared.",
+    },
+    {
+      id: "self-gift",
+      kind: "self",
+      when: () => state.giftsAccepted >= 2 || (state.gives >= 2 && traits.gentleness >= 12),
+      text: "You offer things before asking if they will be kept. Giving may be how you say: stay.",
+    },
+    {
+      id: "room-curious",
+      kind: "room",
+      when: () => traits.curiosity >= 14,
+      text: "The sky outside keeps changing. The monster follows unfinished questions across the floor.",
+    },
+    {
+      id: "self-curious",
+      kind: "self",
+      when: () => traits.curiosity >= 22,
+      text: "You watch before you decide. Wonder is doing quiet work underneath your choices.",
+    },
+    {
+      id: "room-alone",
+      kind: "room",
+      when: () => traits.avoidance >= 10,
+      text: "In the pauses, a nest begins. Emptiness here is not empty for long.",
+    },
+    {
+      id: "self-alone",
+      kind: "self",
+      when: () => traits.avoidance >= 18,
+      text: "Sometimes you step back. Distance, for you, can be another way of arriving.",
+    },
+    {
+      id: "crumb-trail",
+      kind: "room",
+      when: () => state.discoveries.size >= 1,
+      text: "A crumb of wonder appeared. The room rewards curiosity with small, edible mysteries.",
+    },
+    {
+      id: "blank-on-purpose",
+      kind: "metaphor",
+      when: () => journeyDepth() >= 10 && state.totalActions >= 4,
+      text: "The rest of this page is blank on purpose. Keep touching. Some sentences only appear after you get a little lost.",
+    },
+    {
+      id: "secret-blink",
+      kind: "secret",
+      when: () => state.discoveries.has("blink-move"),
+      text: "Secret note: while you blinked, the room rearranged itself. Keep the whisper mirror — it remembers what moved.",
+    },
+    {
+      id: "secret-sky",
+      kind: "secret",
+      when: () => state.discoveries.has("star-sky"),
+      text: "Secret note: a star found the window and remembered night. The paper lantern is yours to hang wherever dusk feels friendly.",
+    },
+    {
+      id: "secret-warmth",
+      kind: "secret",
+      when: () => state.discoveries.has("warmth-crumbs"),
+      text: "Secret note: warmth leaves ribbon-trails. You may keep the soft ribbon and tie it wherever the cookie feels safest.",
+    },
+    {
+      id: "secret-letter",
+      kind: "secret",
+      when: () => state.discoveries.has("gift-glow"),
+      text: "Secret note: a gift that was accepted left an unopened letter. Place it where the room can keep saying stay.",
+    },
+    {
+      id: "secret-frame",
+      kind: "secret",
+      when: () => state.discoveries.has("arrange-sparkle"),
+      text: "Secret note: neat hands unlock a little frame. Decorate with it — arrangement is also a kind of portrait.",
+    },
+    {
+      id: "secret-key",
+      kind: "secret",
+      when: () => state.discoveries.has("play-depth"),
+      text: "Secret note: curiosity earns a brass key. It opens nothing obvious. That is the point — keep exploring.",
+    },
+    {
+      id: "secret-jar",
+      kind: "secret",
+      when: () => state.discoveries.has("gentle-dance"),
+      text: "Secret note: soft hands woke a wish jar. Fill the corner with it; gentleness likes a place to rest.",
+    },
+    {
+      id: "secret-moon",
+      kind: "secret",
+      when: () => state.discoveries.has("wonder-sky"),
+      text: "Secret note: wonder pocketed a moon. Drag it near the window if you want the night to listen.",
+    },
+    {
+      id: "secret-crumb-note",
+      kind: "secret",
+      when: () => state.discoveries.has("crumb-found"),
+      text: "Secret note: a crumb answered you with a spare cookie. Another companion for the shelf of small joys.",
+    },
+    {
+      id: "secret-snapshot",
+      kind: "secret",
+      when: () => state.discoveries.has("first-capture"),
+      text: "Secret note: you kept a picture of the ideal room. The snapshot charm is yours — a reminder of the wish you framed after the temper softened.",
+    },
+    {
+      id: "temper-lesson",
+      kind: "room",
+      when: () => state.mischiefCount >= 4,
+      text: "The cookie keeps unmaking neatness. Temper is part of the weather here — stillness has to be earned, not ordered.",
+    },
+    {
+      id: "calm-soft",
+      kind: "self",
+      when: () => (state.calmMethods.softPet || 0) >= 4,
+      text: "Soft hands keep returning. You may be teaching unrest that tenderness is a place to land.",
+    },
+    {
+      id: "calm-wait",
+      kind: "self",
+      when: () => (state.calmMethods.patience || 0) + (state.calmMethods.space || 0) >= 3,
+      text: "You let quiet do some of the work. Waiting and not-chasing are becoming part of how you meet a living will.",
+    },
+    {
+      id: "room-pattern",
+      kind: "room",
+      when: () => journeyDepth() >= 28,
+      text: "The room no longer looks like it did at the start. It has become a record.",
+    },
+    {
+      id: "self-mirror",
+      kind: "self",
+      when: () => journeyDepth() >= 36,
+      text: "If you feel recognized here, it may be because the room has been practicing your patterns.",
+    },
+    {
+      id: "metaphor-self",
+      kind: "metaphor",
+      when: () => journeyDepth() >= 24,
+      text: "A story-shaped mirror appears: the room begins casting you as a whimsical character of need.",
+    },
+    {
+      id: "arrange-pattern",
+      kind: "room",
+      when: () => state.drags >= 6 || state.organizeCount >= 3,
+      text: "The way objects sit is becoming handwriting. Arrangement itself is starting to speak.",
+    },
+    {
+      id: "capture-want",
+      kind: "self",
+      when: () => !!wantsCapture,
+      text: "You kept a photograph. That frame is a wish: ideal room, ideal cookie face. Compare it later with what your hands kept doing.",
+    },
+    {
+      id: "self-finale",
+      kind: "self",
+      when: () => journeyDepth() >= 50 || state.finalMirrorShown,
+      text: "You thought you were changing a little monster. Notice what in you has softened, tightened, waited, or asked.",
+    },
+  ];
+
+  function getRoomRect() {
+    return room.getBoundingClientRect();
+  }
+
+  function setPos(el, leftPct, topPct) {
+    el.style.left = `${clamp(leftPct, 2, 92)}%`;
+    el.style.top = `${clamp(topPct, 40, 86)}%`;
+  }
+
+  function getPos(el) {
+    return {
+      left: parseFloat(el.style.left) || 0,
+      top: parseFloat(el.style.top) || 0,
+    };
+  }
+
+  function clientToPct(clientX, clientY) {
+    const r = getRoomRect();
+    return {
+      x: ((clientX - r.left) / r.width) * 100,
+      y: ((clientY - r.top) / r.height) * 100,
+    };
+  }
+
+  function bumpTrait(name, amount) {
+    traits[name] = clamp(traits[name] + amount, 0, 100);
+  }
+
+  function dominantTrait() {
+    const entries = Object.entries(traits);
+    entries.sort((a, b) => b[1] - a[1]);
+    const [name, value] = entries[0];
+    const second = entries[1][1];
+    if (value < 12) return null;
+    if (value - second < 4) return "mixed";
+    return name;
+  }
+
+  function journeyDepth() {
+    return state.totalActions + traits.gentleness * 0.15 + traits.control * 0.15
+      + traits.curiosity * 0.15 + traits.avoidance * 0.15;
+  }
+
+  function resetNudgeFlags() {
+    state.nudgeFired = { 1: false, 2: false, 3: false, 4: false };
+    monster.classList.remove("hint-pulse");
+    objects.forEach((o) => o.classList.remove("hint-shimmer"));
+    hintText.classList.remove("show");
+  }
+
+  function spawnFx(leftPct, topPct, kind) {
+    const el = document.createElement("div");
+    el.className = kind === "ripple" ? "fx ripple" : kind === "crumb" ? "fx crumb" : "fx";
+    if (kind === "heart") el.textContent = pick(["♡", "˚", "❀"]);
+    if (kind === "spark") el.textContent = pick(["✧", "·", "✦"]);
+    if (kind === "push") el.textContent = pick(["·", "˚"]);
+    if (kind === "crumb") el.textContent = pick(["•", "●", "◦"]);
+    el.style.left = `${leftPct}%`;
+    el.style.top = `${topPct}%`;
+    room.appendChild(el);
+    setTimeout(() => el.remove(), kind === "crumb" ? 1100 : 950);
+  }
+
+  function showerCrumbs(aroundLeft, aroundTop, count = 5) {
+    for (let i = 0; i < count; i += 1) {
+      setTimeout(() => {
+        spawnFx(aroundLeft + rand(-8, 8), aroundTop + rand(-6, 6), "crumb");
+      }, i * 70);
+    }
+  }
+
+  function flashDust(ms = 2200) {
+    if (!dust) return;
+    dust.style.opacity = "0.55";
+    setTimeout(() => { dust.style.opacity = ""; }, ms);
+  }
+
+  function twinkleStars() {
+    room.classList.remove("star-twinkle");
+    void room.offsetWidth;
+    room.classList.add("star-twinkle");
+    setTimeout(() => room.classList.remove("star-twinkle"), 2400);
+  }
+
+  function awardDiscovery(id, hint) {
+    if (state.discoveries.has(id)) return false;
+    state.discoveries.add(id);
+    if (hint) showFleetingHint(hint);
+    bumpTrait("curiosity", 1.2);
+    deliverRewardGift(id);
+    updateJournal();
+    updateTraces();
+    return true;
+  }
+
+  function spawnRewardDecor(def) {
+    if (!def || document.getElementById(def.id) || state.unlockedDecor.has(def.id)) return false;
+    state.unlockedDecor.add(def.id);
+    const el = document.createElement("div");
+    el.className = "obj reward-item reward-new";
+    el.id = def.id;
+    el.dataset.obj = def.key;
+    el.dataset.reward = "1";
+    el.title = def.label;
+    el.setAttribute("aria-label", def.label);
+    el.textContent = def.emoji;
+    setPos(el, def.left, def.top);
+    room.insertBefore(el, monster);
+    objects = getObjects();
+    spawnFx(def.left, def.top, "spark");
+    showerCrumbs(def.left, def.top, 4);
+    setTimeout(() => el.classList.remove("reward-new"), 1000);
+    return true;
+  }
+
+  function deliverRewardGift(rewardId) {
+    const gift = REWARD_GIFTS[rewardId];
+    if (!gift) return;
+    const spawned = spawnRewardDecor(gift.decor);
+    if (spawned) {
+      showFloatNote(`A secret note unlocked — and a keepsake appeared: ${gift.decor.label}. Drag it anywhere.`, 5200);
+      journalBtn.classList.add("has-new");
+    }
+  }
+
+  function spawnSecretCrumb(leftPct, topPct) {
+    if (room.querySelector(".secret-crumb")) return;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "secret-crumb";
+    btn.setAttribute("aria-label", "A mysterious crumb");
+    btn.title = "?";
+    btn.style.left = `${leftPct}%`;
+    btn.style.top = `${topPct}%`;
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const p = {
+        left: parseFloat(btn.style.left) || leftPct,
+        top: parseFloat(btn.style.top) || topPct,
+      };
+      showerCrumbs(p.left, p.top, 6);
+      spawnFx(p.left, p.top, "heart");
+      awardDiscovery("crumb-found", "A crumb answered.");
+      flashRoom("warm");
+      bumpTrait("gentleness", 0.8);
+      btn.remove();
+      updateAtmosphere();
+    });
+    room.appendChild(btn);
+    setTimeout(() => {
+      if (btn.isConnected) btn.remove();
+    }, 18000);
+  }
+
+  function flashRoom(mode) {
+    room.classList.remove("flash-warm", "flash-cool");
+    void room.offsetWidth;
+    room.classList.add(mode === "cool" ? "flash-cool" : "flash-warm");
+    setTimeout(() => room.classList.remove("flash-warm", "flash-cool"), 600);
+  }
+
+  function recordAction(type) {
+    const t = now();
+    state.recentActions.push({ type, t });
+    state.recentActions = state.recentActions.filter((a) => t - a.t < 8000);
+    state.lastInteractAt = t;
+    state.totalActions += 1;
+    resetNudgeFlags();
+
+    const same = state.recentActions.filter((a) => a.type === type).length;
+    if (same >= 3) {
+      if (type === "pet") bumpTrait("gentleness", 1);
+      if (type === "dragMonster") bumpTrait("control", 1);
+      if (type === "dragObject") bumpTrait("control", 1);
+      if (type === "give") bumpTrait("curiosity", 1);
+    }
+
+    updateAtmosphere();
+    updateTraces();
+    updateJournal();
+    maybeReflect();
+    maybeRewardPlay();
+  }
+
+  function maybeRewardPlay() {
+    const m = getPos(monster);
+    const milestones = [
+      {
+        id: "warmth-crumbs",
+        when: () => state.pets >= 3,
+        run: () => {
+          showerCrumbs(m.left + 4, m.top, 7);
+          setMonsterState("happy");
+          flashRoom("warm");
+          showFleetingHint("Warmth left crumbs.");
+          awardDiscovery("warmth-crumbs");
+        },
+      },
+      {
+        id: "gift-glow",
+        when: () => state.giftsAccepted >= 1,
+        run: () => {
+          showerCrumbs(m.left, m.top - 2, 5);
+          spawnFx(m.left + 2, m.top, "heart");
+          showFleetingHint("The gift settled into the room.");
+          awardDiscovery("gift-glow");
+        },
+      },
+      {
+        id: "arrange-sparkle",
+        when: () => state.organizeCount >= 2 || state.drags >= 6,
+        run: () => {
+          twinkleStars();
+          flashDust(1800);
+          objects.forEach((o) => spawnFx(getPos(o).left, getPos(o).top, "spark"));
+          showFleetingHint("The room noticed your arranging.");
+          awardDiscovery("arrange-sparkle");
+        },
+      },
+      {
+        id: "play-depth",
+        when: () => state.totalActions >= 10,
+        run: () => {
+          showerCrumbs(rand(25, 70), rand(45, 70), 8);
+          twinkleStars();
+          showFloatNote("Keep going — blank pages and odd crumbs appear for the curious.", 5200);
+          awardDiscovery("play-depth");
+        },
+      },
+      {
+        id: "gentle-dance",
+        when: () => traits.gentleness >= 18,
+        run: () => {
+          setMonsterState("happy");
+          showerCrumbs(m.left + 3, m.top, 6);
+          showMirrorLine("Softness answered soft hands.", 2800);
+          awardDiscovery("gentle-dance");
+        },
+      },
+      {
+        id: "wonder-sky",
+        when: () => traits.curiosity >= 16,
+        run: () => {
+          twinkleStars();
+          flashDust(2600);
+          spawnSecretCrumb(rand(18, 78), rand(42, 62));
+          showFleetingHint("A crumb hid itself on purpose.");
+          awardDiscovery("wonder-sky");
+        },
+      },
+    ];
+
+    milestones.forEach((mile) => {
+      if (state.rewardMilestones.has(mile.id)) return;
+      try {
+        if (!mile.when()) return;
+      } catch (_) {
+        return;
+      }
+      state.rewardMilestones.add(mile.id);
+      mile.run();
+    });
+  }
+
+  function maybeMysteryEvent() {
+    if (!state.interactive || state.journalOpen || !leavePanel.hidden || !photoPanel.hidden) return;
+    if (state.totalActions < 2 && journeyDepth() < 10) return;
+    const t = now();
+    if (t < state.mysteryCooldownUntil) return;
+    if (Math.random() > 0.07) return;
+
+    const idle = (t - state.lastInteractAt) / 1000;
+    const pool = [];
+    if (idle >= 4 || Math.random() < 0.35) pool.push("blink-move");
+    if (journeyDepth() >= 8) pool.push("star-sky");
+    if (state.totalActions >= 4) pool.push("mood-glitch", "cryptic", "crumb-appear");
+    if (traits.curiosity >= 8) pool.push("whisper-object");
+    if (!pool.length) return;
+
+    const kind = pick(pool);
+    state.mysteryCooldownUntil = t + rand(18000, 36000);
+
+    if (kind === "blink-move") {
+      const obj = pick(objects.filter((o) => !state.attachedGifts.has(o.id)));
+      if (!obj) return;
+      const p = getPos(obj);
+      setPos(obj, clamp(p.left + rand(-14, 14), 8, 88), clamp(p.top + rand(-10, 10), 40, 82));
+      spawnFx(p.left, p.top, "spark");
+      awardDiscovery("blink-move", "Something moved while you blinked.");
+      showFloatNote("Not everything waits for your hands.", 4200);
+      return;
+    }
+
+    if (kind === "star-sky") {
+      twinkleStars();
+      flashDust(2400);
+      const sky = document.querySelector(".window");
+      if (sky) {
+        const before = sky.style.filter;
+        sky.style.filter = "brightness(1.18) saturate(1.2)";
+        setTimeout(() => { sky.style.filter = before; }, 1600);
+      }
+      awardDiscovery("star-sky", "A star remembered night.");
+      showFloatNote("The window changed its mind about the sky.", 4000);
+      return;
+    }
+
+    if (kind === "mood-glitch") {
+      const prev = state.monsterState;
+      const odd = pick(["shy", "curious", "resistant", "happy", "sleepy"]);
+      setMonsterState(odd);
+      if (moodChip) {
+        const old = moodChip.textContent;
+        moodChip.textContent = pick(["…?", "half-a-wish", "unfinished name"]);
+        setTimeout(() => {
+          moodChip.textContent = old;
+          if (state.monsterState === odd) setMonsterState(prev);
+        }, 1600);
+      } else {
+        setTimeout(() => setMonsterState(prev), 1600);
+      }
+      showFleetingHint("The face flickered.");
+      return;
+    }
+
+    if (kind === "cryptic") {
+      showFloatNote(pick([
+        "A sentence almost formed, then hid again.",
+        "The corner knows something you have not asked yet.",
+        "If you rearrange once more, a different secret may wake.",
+        "Some rewards only appear after you get a little lost.",
+      ]), 4800);
+      bumpTrait("curiosity", 0.6);
+      return;
+    }
+
+    if (kind === "crumb-appear") {
+      spawnSecretCrumb(rand(14, 82), rand(40, 68));
+      showFleetingHint("…?");
+      return;
+    }
+
+    if (kind === "whisper-object") {
+      const obj = pick(objects);
+      obj.classList.add("hint-shimmer");
+      setTimeout(() => obj.classList.remove("hint-shimmer"), 2800);
+      showFloatNote("One object wants attention. It will not say why.", 4200);
+    }
+  }
+
+  const MOOD_METAPHORS = {
+    idle: "Hearth-Drowsing Sprite",
+    curious: "Keyhole Famulus",
+    happy: "Honey-Hex Darling",
+    shy: "Veil-Moth Wisp",
+    resistant: "Bramble-Ward Imp",
+    sleepy: "Moonmilk Slumberkin",
+    exploring: "Cobweb Cartographer",
+  };
+
+  function moodMetaphor(stateName) {
+    return MOOD_METAPHORS[stateName] || stateName;
+  }
+
+  function setMonsterState(next) {
+    if (state.monsterState === next) {
+      monster.classList.add(next);
+      if (moodChip) moodChip.textContent = moodMetaphor(next);
+      return;
+    }
+    const prev = state.monsterState;
+    state.monsterState = next;
+    monster.classList.remove("idle", "curious", "happy", "shy", "resistant", "sleepy", "exploring");
+    monster.classList.add(next);
+    if (moodChip) {
+      moodChip.textContent = moodMetaphor(next);
+      moodChip.title = next;
+      moodChip.style.transform = "translateX(-50%) scale(1.12)";
+      setTimeout(() => { moodChip.style.transform = "translateX(-50%)"; }, 220);
+    }
+    if (state.interactive && prev !== next) {
+      flashRoom(["shy", "resistant", "sleepy"].includes(next) ? "cool" : "warm");
+      updateAtmosphere();
+    }
+  }
+
+
+  function calmBand() {
+    if (state.calm >= 75) return "settled";
+    if (state.calm >= 55) return "softening";
+    if (state.calm >= 30) return "fidgety";
+    return "restless";
+  }
+
+  function isSettledForPhoto() {
+    return state.calm >= 65 && !["resistant", "exploring"].includes(state.monsterState);
+  }
+
+  function updateCalmUI() {
+    if (!calmHud) return;
+    if (state.interactive) calmHud.classList.add("visible");
+    else calmHud.classList.remove("visible");
+    const band = calmBand();
+    if (calmLabelEl) calmLabelEl.textContent = band;
+    if (calmFill) calmFill.style.width = `${Math.round(state.calm)}%`;
+    calmHud.classList.toggle("settled", band === "settled");
+    calmHud.classList.toggle("restless", band === "restless" || band === "fidgety");
+    if (cameraBtn) {
+      cameraBtn.classList.toggle("needs-calm", state.interactive && !isSettledForPhoto());
+      cameraBtn.classList.toggle("pulse-invite", state.interactive && isSettledForPhoto() && !wantsCapture);
+      if (!isSettledForPhoto()) cameraBtn.classList.remove("pulse-invite");
+      cameraBtn.title = isSettledForPhoto()
+        ? "Photograph the settled room"
+        : "Cookie is too restless — soothe it first";
+    }
+  }
+
+  function adjustCalm(delta, method) {
+    const prev = state.calm;
+    state.calm = clamp(state.calm + delta, 0, 100);
+    if (method && delta > 0) {
+      state.calmMethods[method] = (state.calmMethods[method] || 0) + 1;
+    }
+    updateCalmUI();
+    if (prev < 65 && state.calm >= 65) {
+      showFleetingHint("It settled… for now.");
+      if (!["happy", "sleepy", "idle"].includes(state.monsterState)) {
+        setMonsterState(pick(["happy", "sleepy", "idle"]));
+      }
+    } else if (prev >= 45 && state.calm < 28) {
+      showFleetingHint("Temper rising.");
+      if (Math.random() < 0.55) setMonsterState("resistant");
+    }
+  }
+
+  function dominantCalmMethod() {
+    const entries = Object.entries(state.calmMethods || {}).sort((a, b) => b[1] - a[1]);
+    if (!entries.length || entries[0][1] <= 0) return null;
+    return { id: entries[0][0], count: entries[0][1], all: Object.fromEntries(entries) };
+  }
+
+
+  function facePointer() {
+    const m = getPos(monster);
+    const dx = state.pointer.x * 100 - (m.left + 3);
+    const skew = clamp(dx * 0.08, -8, 8);
+    plush.style.transform = `rotate(${skew}deg)`;
+  }
+
+  function distance(a, b) {
+    return Math.hypot(a.left - b.left, a.top - b.top);
+  }
+
+  function moveToward(el, targetLeft, targetTop, speed = 0.8) {
+    const p = getPos(el);
+    const dx = targetLeft - p.left;
+    const dy = targetTop - p.top;
+    const d = Math.hypot(dx, dy) || 1;
+    setPos(el, p.left + (dx / d) * speed, p.top + (dy / d) * speed);
+  }
+
+  function showOverlayLine(text) {
+    overlayText.classList.remove("show");
+    overlayText.textContent = text;
+    requestAnimationFrame(() => overlayText.classList.add("show"));
+  }
+
+  function runIntro() {
+    overlayTitle.textContent = "The Little Monster in the Room";
+    overlaySubtitle.textContent = "capture your ideal · discover your patterns";
+    overlayText.textContent = "";
+    requestAnimationFrame(() => {
+      overlayTitle.classList.add("show");
+      overlaySubtitle.classList.add("show");
+    });
+
+    setTimeout(() => showOverlayLine("This cookie has a temper. It will mess the room unless you coax it calm."), 2400);
+    setTimeout(() => showOverlayLine("Soft pets, gifts, quiet waiting, gentle tidying, or giving it space — find what soothes."), 5200);
+    setTimeout(() => showOverlayLine("When it settles, photograph the room you wish were true. How you calmed it reveals your patterns."), 8000);
+    setTimeout(() => {
+      overlayTitle.classList.remove("show");
+      overlaySubtitle.classList.remove("show");
+      overlayText.classList.remove("show");
+      overlay.classList.add("hidden");
+      roomTitle.classList.add("visible");
+      state.interactive = true;
+      state.lastInteractAt = now();
+      state.journeyStartedAt = now();
+      scheduleFloatNotes();
+      scheduleOnboarding();
+      updateCameraVisibility();
+      updateCalmUI();
+      setMonsterState("exploring");
+    }, 11800);
+  }
+
+  const FLOAT_LINES = [
+    "Too restless for a still picture? Try soft pets, a gift, quiet waiting, gentle tidying — or step back.",
+    "Forcing the cookie usually wakes its temper. Soothing is a puzzle with more than one answer.",
+    "If this room does not feel like you, come back another time — you can reshape its reflection.",
+    "Rewards unlock secret notes and new decor. Drag your keepsakes anywhere you like.",
+    "Nothing here is final. Return whenever you want the room to meet you again.",
+  ];
+
+  let floatIndex = 0;
+  let floatTimer = null;
+
+  function showFloatNote(text, holdMs = 5200) {
+    if (state.journalOpen || !reportPanel.hidden || !photoPanel.hidden) return;
+    floatNote.textContent = text;
+    floatNote.classList.add("show");
+    setTimeout(() => floatNote.classList.remove("show"), holdMs);
+  }
+
+  function scheduleOnboarding() {
+    setTimeout(() => {
+      if (!state.interactive || wantsCapture || state.onboardingDone) return;
+      showFloatNote("The cookie starts restless. Soften its temper before the camera will keep a still wish.", 6200);
+    }, 1600);
+
+    setTimeout(() => {
+      if (!state.interactive || wantsCapture) return;
+      cameraBtn.classList.add("visible", "pulse-invite");
+      showFleetingHint("The camera keeps wishes.");
+    }, 3800);
+
+    setTimeout(() => {
+      if (!state.interactive) return;
+      state.onboardingDone = true;
+      if (wantsCapture) return;
+      showFloatNote("When the temper meter says settled, take your picture. How you soothed it becomes part of your summary.", 5800);
+    }, 11000);
+  }
+
+  function scheduleFloatNotes() {
+    // First gentle reminder after the player has spent a little time here
+    setTimeout(() => {
+      if (!state.interactive) return;
+      if (!wantsCapture) {
+        showFloatNote(FLOAT_LINES[0], 5800);
+        floatIndex = 1;
+        return;
+      }
+      showFloatNote(FLOAT_LINES[1]);
+      floatIndex = 2;
+    }, 42000);
+
+    floatTimer = setInterval(() => {
+      if (!state.interactive) return;
+      if (journeyDepth() < 12) return;
+      showFloatNote(FLOAT_LINES[floatIndex % FLOAT_LINES.length]);
+      floatIndex += 1;
+    }, 70000);
+  }
+
+  function showFleetingHint(text) {
+    hintText.textContent = text;
+    hintText.classList.add("show");
+    setTimeout(() => hintText.classList.remove("show"), 2200);
+  }
+
+  function showMirrorLine(text, duration = 3200) {
+    mirrorText.textContent = text;
+    mirrorText.classList.add("show");
+    setTimeout(() => mirrorText.classList.remove("show"), duration);
+  }
+
+  function maybeReflect() {
+    const depth = journeyDepth();
+    const t = now();
+    if (t - state.lastReflectionAt < 14000) return;
+
+    // Gradual self-seeing: mid journey → pattern lines; late → finale
+    if (depth >= 55 && !state.finalMirrorShown) {
+      state.finalMirrorShown = true;
+      state.lastReflectionAt = t;
+      const lines = REFLECTIONS.finale;
+      let i = 0;
+      const showNext = () => {
+        if (i >= lines.length) return;
+        showMirrorLine(lines[i], i === lines.length - 1 ? 4200 : 2800);
+        i += 1;
+        if (i < lines.length) setTimeout(showNext, 3400);
+      };
+      showNext();
+      return;
+    }
+
+    if (depth < 18) return;
+
+    const dom = dominantTrait();
+    if (!dom) return;
+
+    const pool = REFLECTIONS[dom] || REFLECTIONS.mixed;
+    const unused = pool.filter((line) => !state.reflectionsShown.has(line));
+    if (!unused.length) return;
+
+    // Require stronger presence before reflecting that pattern
+    const need = { gentleness: 18, control: 18, curiosity: 16, avoidance: 14, mixed: 20 };
+    if (dom !== "mixed" && traits[dom] < (need[dom] || 18)) return;
+    if (depth < 18 + state.reflectionIndex * 8) return;
+
+    const line = unused[0];
+    state.reflectionsShown.add(line);
+    state.reflectionIndex += 1;
+    state.lastReflectionAt = t;
+    showMirrorLine(line);
+  }
+
+  function updateTraces() {
+    if (traits.gentleness >= 14 || state.pets >= 4) {
+      traces.hearts.classList.add("show");
+      room.classList.add("has-memory");
+    }
+    if (traits.control >= 16 || state.organizeCount >= 3) {
+      traces.grid.classList.add("show");
+      room.classList.add("has-memory");
+    }
+    if (traits.curiosity >= 14 || state.gives >= 2) {
+      traces.stars.classList.add("show");
+      room.classList.add("has-memory");
+    }
+    if (traits.avoidance >= 12 || state.giftsAccepted >= 2) {
+      traces.yarn.classList.add("show");
+      room.classList.add("has-memory");
+    }
+  }
+
+  function updateJournal() {
+    let gained = false;
+    JOURNAL_ENTRIES.forEach((entry) => {
+      if (state.unlockedJournal.has(entry.id)) return;
+      try {
+        if (!entry.when()) return;
+      } catch (_) {
+        return;
+      }
+      state.unlockedJournal.add(entry.id);
+      state.unreadJournal.add(entry.id);
+      gained = true;
+    });
+
+    if (gained && !state.journalOpen) {
+      journalBtn.classList.add("has-new");
+      if (state.unlockedJournal.size === 1) {
+        showFleetingHint("A tiny journal noticed.");
+      } else if (state.unreadJournal.size > 0 && Math.random() < 0.55) {
+        showFleetingHint("Something was written.");
+      }
+    }
+
+    if (state.journalOpen) renderJournalPages();
+    else syncJournalBadge();
+    updateCameraVisibility();
+  }
+
+  function syncJournalBadge() {
+    if (state.unreadJournal.size > 0) journalBtn.classList.add("has-new");
+    else journalBtn.classList.remove("has-new");
+  }
+
+  function renderJournalPages() {
+    const unlocked = JOURNAL_ENTRIES.filter((e) => state.unlockedJournal.has(e.id));
+    journalCount.textContent = unlocked.length
+      ? `${unlocked.length} note${unlocked.length === 1 ? "" : "s"}`
+      : "";
+
+    if (!unlocked.length) {
+      journalPages.innerHTML = `<p class="journal-empty">Blank pages. Touch the room a little longer.</p>`;
+      return;
+    }
+
+    journalPages.innerHTML = unlocked.map((entry) => {
+      const isNew = state.unreadJournal.has(entry.id);
+      const label = entry.kind === "self"
+        ? "About you"
+        : entry.kind === "metaphor"
+          ? "A metaphor"
+          : entry.kind === "secret"
+            ? "Secret note"
+            : "About the room";
+      let body = `<p>${entry.text}</p>`;
+      if (entry.id === "metaphor-self") {
+        const profile = buildBehaviorProfile();
+        const m = profile.metaphor;
+        body += `<div class="metaphor-card"><strong>${m.name}</strong>${m.text}<br><em>Need: ${m.need}</em></div>`;
+        const a = profile.arrangement;
+        body += `<div class="metaphor-card"><strong>${a.metaphor.name}</strong>${a.metaphor.text}</div>`;
+      }
+      return `<article class="journal-entry${isNew ? " new-ink" : ""}" data-id="${entry.id}">
+        <div class="tag ${entry.kind}">${label}</div>
+        ${body}
+      </article>`;
+    }).join("");
+  }
+
+  function openJournal() {
+    state.journalOpen = true;
+    document.documentElement.classList.add("ui-scrollable");
+    journalPanel.hidden = false;
+    requestAnimationFrame(() => journalPanel.classList.add("open"));
+    renderJournalPages();
+    journalBtn.classList.remove("has-new");
+  }
+
+  function closeJournal() {
+    state.journalOpen = false;
+    state.unreadJournal.clear();
+    journalPanel.classList.remove("open");
+    document.documentElement.classList.remove("ui-scrollable");
+    setTimeout(() => { journalPanel.hidden = true; }, 350);
+    syncJournalBadge();
+  }
+
+  function mixHex(a, b, t) {
+    const pa = parseInt(a.slice(1), 16);
+    const pb = parseInt(b.slice(1), 16);
+    const ar = (pa >> 16) & 255, ag = (pa >> 8) & 255, ab = pa & 255;
+    const br = (pb >> 16) & 255, bg = (pb >> 8) & 255, bb = pb & 255;
+    const r = Math.round(ar + (br - ar) * t);
+    const g = Math.round(ag + (bg - ag) * t);
+    const bl = Math.round(ab + (bb - ab) * t);
+    return `#${((1 << 24) + (r << 16) + (g << 8) + bl).toString(16).slice(1)}`;
+  }
+
+  function rgbaFromHex(hex, alpha) {
+    const p = parseInt(hex.slice(1), 16);
+    const r = (p >> 16) & 255, g = (p >> 8) & 255, b = p & 255;
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
+  function traitWeights() {
+    const g = traits.gentleness;
+    const c = traits.control;
+    const q = traits.curiosity;
+    const a = traits.avoidance;
+    const sum = g + c + q + a;
+    if (sum < 1) return { gentleness: 0.25, control: 0.25, curiosity: 0.25, avoidance: 0.25, total: 0 };
+    return {
+      gentleness: g / sum,
+      control: c / sum,
+      curiosity: q / sum,
+      avoidance: a / sum,
+      total: sum,
+    };
+  }
+
+  function updateAtmosphere() {
+    const w = traitWeights();
+    const mood = state.monsterState;
+    const intensity = clamp(0.35 + w.total / 45, 0.35, 1.35);
+
+    let wallTop = "#c8ddf0";
+    let wallBot = "#b5d0e8";
+    let floor = "#c4a484";
+    let floorBoard = "#b8956f";
+    let skyTop = "#b8d4e8";
+    let skyBot = "#f2e2c4";
+
+    wallTop = mixHex(wallTop, "#ffc8a8", Math.min(1, w.gentleness * intensity * 1.0));
+    wallBot = mixHex(wallBot, "#f0a888", Math.min(1, w.gentleness * intensity * 0.9));
+    skyBot = mixHex(skyBot, "#ffd090", Math.min(1, w.gentleness * intensity * 1.4));
+    floor = mixHex(floor, "#e0a070", Math.min(1, w.gentleness * intensity));
+
+    wallTop = mixHex(wallTop, "#9eb4cc", Math.min(1, w.control * intensity * 1.2));
+    wallBot = mixHex(wallBot, "#8aa0b8", Math.min(1, w.control * intensity * 1.1));
+    skyTop = mixHex(skyTop, "#6a849c", Math.min(1, w.control * intensity * 1.5));
+    skyBot = mixHex(skyBot, "#c0c8d0", Math.min(1, w.control * intensity * 1.2));
+    floor = mixHex(floor, "#8a98a4", Math.min(1, w.control * intensity * 1.1));
+    floorBoard = mixHex(floorBoard, "#708090", Math.min(1, w.control * intensity));
+
+    wallTop = mixHex(wallTop, "#c8b8e8", Math.min(1, w.curiosity * intensity * 1.15));
+    wallBot = mixHex(wallBot, "#b0a0d8", Math.min(1, w.curiosity * intensity * 1.05));
+    skyTop = mixHex(skyTop, "#a888e8", Math.min(1, w.curiosity * intensity * 1.5));
+    skyBot = mixHex(skyBot, "#f0c8e0", Math.min(1, w.curiosity * intensity));
+
+    wallTop = mixHex(wallTop, "#d0c8e0", Math.min(1, w.avoidance * intensity * 0.9));
+    wallBot = mixHex(wallBot, "#b8b0c8", Math.min(1, w.avoidance * intensity * 0.85));
+    floor = mixHex(floor, "#d09070", Math.min(1, (w.gentleness + w.avoidance) * 0.6 * intensity));
+    floorBoard = mixHex(floorBoard, "#b87858", Math.min(1, (w.gentleness + w.avoidance) * 0.55 * intensity));
+
+    let sat = 1.05, bright = 1, contrast = 1, hue = 0;
+    let lightWash = rgbaFromHex("#ffe8c8", 0.2 + w.gentleness * 0.55 * intensity);
+    let moodTint = rgbaFromHex("#ffc8a0", 0.08 + w.gentleness * 0.28 * intensity);
+    let cornerGlow = "transparent";
+    let veilColor = "#c8b8a8";
+    let veilOpacity = 0;
+    let innerGlow = "transparent";
+    let atmOpacity = 0.9;
+    let lampX = "50%";
+    let lampY = "18%";
+
+    if (mood === "happy") {
+      bright += 0.1;
+      sat += 0.18;
+      lightWash = rgbaFromHex("#ffcc66", 0.55);
+      moodTint = rgbaFromHex("#ffb040", 0.28);
+      innerGlow = rgbaFromHex("#ffd080", 0.28);
+      lampY = "14%";
+    }
+    if (mood === "curious") {
+      bright += 0.06;
+      sat += 0.12;
+      hue = -10;
+      lightWash = rgbaFromHex("#c8b0ff", 0.42);
+      moodTint = rgbaFromHex("#a890f0", 0.22);
+      cornerGlow = rgbaFromHex("#b090ff", 0.35);
+    }
+    if (mood === "shy" || mood === "resistant") {
+      bright -= 0.14;
+      contrast += 0.1;
+      sat -= 0.12;
+      veilColor = mood === "resistant" ? "#6a4050" : "#5a6a7a";
+      veilOpacity = mood === "resistant" ? 0.42 : 0.32 + w.control * 0.25;
+      lightWash = rgbaFromHex(mood === "resistant" ? "#ff9080" : "#a0b0c0", 0.35);
+      moodTint = rgbaFromHex(mood === "resistant" ? "#c05048" : "#607080", 0.28);
+      atmOpacity = 0.98;
+      lampX = "34%";
+      innerGlow = rgbaFromHex(mood === "resistant" ? "#ff7060" : "#8090a0", 0.18);
+    }
+    if (mood === "sleepy") {
+      bright -= 0.1;
+      sat -= 0.15;
+      veilOpacity = Math.max(veilOpacity, 0.22);
+      lampY = "30%";
+      lightWash = rgbaFromHex("#b0a0d0", 0.3);
+      moodTint = rgbaFromHex("#8070a8", 0.2);
+    }
+    if (mood === "exploring") {
+      hue = -12;
+      sat += 0.16;
+      bright += 0.05;
+      cornerGlow = rgbaFromHex("#40e0c0", 0.4);
+      moodTint = rgbaFromHex("#30c8b0", 0.2);
+      lightWash = rgbaFromHex("#80ffe0", 0.35);
+    }
+
+    if (traits.control > 10) {
+      const c = clamp((traits.control - 10) / 40, 0, 1);
+      bright -= 0.12 * c;
+      sat -= 0.18 * c;
+      contrast += 0.12 * c;
+      veilOpacity = Math.max(veilOpacity, 0.15 + 0.4 * c);
+      veilColor = mixHex(veilColor, "#4a6070", c);
+      innerGlow = rgbaFromHex("#7090a8", 0.2 * c);
+      document.querySelectorAll(".curtain").forEach((el) => {
+        el.style.width = `${12 + (1 - c) * 20}%`;
+        el.style.opacity = String(0.45 + c * 0.4);
+      });
+    } else {
+      document.querySelectorAll(".curtain").forEach((el) => {
+        el.style.width = "";
+        el.style.opacity = "";
+      });
+    }
+
+    if (traits.gentleness > 10) {
+      const g = clamp((traits.gentleness - 10) / 40, 0, 1);
+      bright += 0.1 * g;
+      sat += 0.15 * g;
+      innerGlow = rgbaFromHex("#ffb070", 0.1 + 0.28 * g);
+      cornerGlow = cornerGlow === "transparent"
+        ? rgbaFromHex("#ffc080", 0.15 + 0.35 * g)
+        : cornerGlow;
+    }
+
+    if (traits.avoidance > 8) {
+      const a = clamp((traits.avoidance - 8) / 35, 0, 1);
+      lampX = `${48 + a * 22}%`;
+      lampY = `${16 + a * 14}%`;
+      cornerGlow = rgbaFromHex("#ffb090", 0.2 + 0.4 * a);
+    }
+
+    const rs = room.style;
+    rs.setProperty("--wall-top", wallTop);
+    rs.setProperty("--wall-bot", wallBot);
+    rs.setProperty("--floor", floor);
+    rs.setProperty("--floor-board", floorBoard);
+    rs.setProperty("--sky-top", skyTop);
+    rs.setProperty("--sky-bot", skyBot);
+    rs.setProperty("--light-wash", lightWash);
+    rs.setProperty("--mood-tint", moodTint);
+    rs.setProperty("--corner-glow", cornerGlow);
+    rs.setProperty("--veil-color", veilColor);
+    rs.setProperty("--veil-opacity", String(veilOpacity));
+    rs.setProperty("--inner-glow", innerGlow);
+    rs.setProperty("--atm-opacity", String(atmOpacity));
+    rs.setProperty("--sat", String(clamp(sat, 0.65, 1.4)));
+    rs.setProperty("--bright", String(clamp(bright, 0.72, 1.22)));
+    rs.setProperty("--contrast", String(clamp(contrast, 0.9, 1.25)));
+    rs.setProperty("--hue", `${hue}deg`);
+    rs.setProperty("--lamp-x", lampX);
+    rs.setProperty("--lamp-y", lampY);
+
+    const stageCool = w.control + (mood === "shy" || mood === "resistant" ? 0.45 : 0);
+    const stageWarm = w.gentleness + w.avoidance * 0.5;
+    if (mood === "resistant") {
+      stage.style.background = "radial-gradient(ellipse at 50% 30%, #4a2830 0%, #180c10 72%)";
+    } else if (mood === "happy") {
+      stage.style.background = "radial-gradient(ellipse at 50% 30%, #5a4030 0%, #241810 72%)";
+    } else if (stageCool > stageWarm && stageCool > 0.3) {
+      stage.style.background = "radial-gradient(ellipse at 50% 30%, #2a3848 0%, #0e141c 72%)";
+    } else if (w.curiosity > 0.35 && intensity > 0.45) {
+      stage.style.background = "radial-gradient(ellipse at 50% 28%, #403048 0%, #160e1c 72%)";
+    } else if (stageWarm > 0.3) {
+      stage.style.background = "radial-gradient(ellipse at 50% 30%, #4a3830 0%, #1e1612 72%)";
+    } else {
+      stage.style.background = "";
+    }
+
+    const dom = dominantTrait();
+    const map = {
+      gentleness: "atm-soft",
+      control: "atm-ordered",
+      curiosity: "atm-wonder",
+      avoidance: "atm-tender",
+    };
+    const atmClasses = ["atm-soft", "atm-ordered", "atm-wonder", "atm-tender"];
+    atmClasses.forEach((c) => room.classList.remove(c));
+    const next = map[dom] || null;
+    if (next) {
+      room.classList.add(next);
+      if (state.atmosphere && state.atmosphere !== next) {
+        flashRoom(next === "atm-ordered" || next === "atm-wonder" ? "cool" : "warm");
+      }
+      state.atmosphere = next;
+    }
+
+    room.classList.remove("room-ordered", "room-lived-in", "has-nest");
+    const aligned = alignmentScore();
+    const scatter = scatterDistance();
+
+    if (state.giftsAccepted >= 2 || traits.avoidance > 22) {
+      room.classList.add("has-nest");
+      const m = getPos(monster);
+      nestPile.style.left = `${m.left - 1}%`;
+      nestPile.style.top = `${m.top + 6}%`;
+    } else if (aligned >= 3 || (traits.control > 28 && scatter < 42)) {
+      room.classList.add("room-ordered");
+    } else if (scatter > 55 || traits.curiosity > 18) {
+      room.classList.add("room-lived-in");
+    }
+  }
+
+  function analyzeArrangement() {
+    const objs = getObjects();
+    if (!objs.length) {
+      return { style: "scatter", label: "still forming", aligned: 0, scatter: 0, nestness: 0, clustering: 0 };
+    }
+    const m = getPos(monster);
+    let aligned = 0;
+    let scatter = 0;
+    let nestness = 0;
+    const pts = objs.map((obj, i) => {
+      const p = getPos(obj);
+      const slot = ORDERED_SLOTS[i] || ORDERED_SLOTS[i % ORDERED_SLOTS.length];
+      const dSlot = Math.hypot(p.left - slot.left, p.top - slot.top);
+      scatter += dSlot;
+      if (dSlot < 8) aligned += 1;
+      const dMon = Math.hypot(p.left - m.left, p.top - m.top);
+      if (dMon < 16) nestness += 1;
+      return p;
+    });
+
+    // average pairwise distance (lower = clustered)
+    let pair = 0;
+    let pairs = 0;
+    for (let i = 0; i < pts.length; i++) {
+      for (let j = i + 1; j < pts.length; j++) {
+        pair += Math.hypot(pts[i].left - pts[j].left, pts[i].top - pts[j].top);
+        pairs += 1;
+      }
+    }
+    const avgPair = pairs ? pair / pairs : 40;
+    const clustering = clamp(1 - (avgPair - 12) / 40, 0, 1);
+
+    let style = "scatter";
+    if (nestness >= 3 || (traits.avoidance > 18 && nestness >= 2)) style = "nest";
+    else if (aligned >= Math.ceil(objs.length * 0.45) || (traits.control > 22 && scatter < objs.length * 12)) style = "ordered";
+    else if (clustering > 0.62) style = "clustered";
+    else style = "scatter";
+
+    const labels = {
+      ordered: "aligned / orderly",
+      nest: "gathered into a nest",
+      scatter: "open / lived-in scatter",
+      clustered: "clustered together",
+    };
+
+    return {
+      style,
+      label: labels[style],
+      aligned,
+      scatter: Math.round(scatter),
+      nestness,
+      clustering: Math.round(clustering * 100),
+      metaphor: ARRANGE_METAPHORS[style],
+    };
+  }
+
+  function pickSelfMetaphor(profile) {
+    if (profile.topVal < 10) return METAPHORS.mixed;
+    if (profile.topVal - profile.secondVal < 5 && profile.secondVal > 10) return METAPHORS.mixed;
+    return METAPHORS[profile.top] || METAPHORS.mixed;
+  }
+
+  function atmosphereLabel(atm) {
+    const map = {
+      "atm-soft": "a soft, warm atmosphere — tenderness made visible",
+      "atm-ordered": "an ordered, cool atmosphere — clarity arranged into safety",
+      "atm-wonder": "a wondering atmosphere — lilac curiosity in the air",
+      "atm-tender": "a careful atmosphere — nearness held at a gentle distance",
+    };
+    return map[atm] || "a quiet undecided atmosphere — the room still listening";
+  }
+
+  function recordWantsCapture(profile, scene) {
+    wantsCapture = {
+      at: Date.now(),
+      mood: profile.monsterState || state.monsterState || "idle",
+      moodName: moodMetaphor(profile.monsterState || state.monsterState || "idle"),
+      atmosphere: state.atmosphere,
+      atmosphereText: atmosphereLabel(state.atmosphere),
+      metaphor: profile.metaphor,
+      arrangement: {
+        label: profile.arrangement.label,
+        style: profile.arrangement.style,
+        metaphor: profile.arrangement.metaphor,
+      },
+      scene: scene ? { title: scene.title, blurb: scene.blurb, craft: scene.craft } : null,
+      traits: { ...profile.traits },
+      top: profile.top,
+      second: profile.second,
+      calm: state.calm,
+      calmBand: calmBand(),
+      calmMethods: { ...state.calmMethods },
+      mischiefCount: state.mischiefCount,
+    };
+    cameraBtn.classList.remove("pulse-invite");
+    updateJournal();
+    if (!state.rewardMilestones.has("first-capture")) {
+      state.rewardMilestones.add("first-capture");
+      const m = getPos(monster);
+      showerCrumbs(m.left + 3, m.top, 8);
+      flashRoom("warm");
+      twinkleStars();
+      awardDiscovery("first-capture", "Wish kept — room portrait saved.");
+      setTimeout(() => {
+        showFloatNote("You can zoom into your cookie character from the photo. Keep playing for secret notes and decor.", 5600);
+      }, 900);
+    }
+  }
+
+  function buildBehaviorProfile() {
+    const w = traitWeights();
+    const ranked = Object.entries(traits).sort((a, b) => b[1] - a[1]);
+    const top = ranked[0];
+    const second = ranked[1];
+    const arrangement = analyzeArrangement();
+    const profile = {
+      traits: { ...traits },
+      weights: w,
+      top: top[0],
+      topVal: top[1],
+      second: second[0],
+      secondVal: second[1],
+      pets: state.pets,
+      drags: state.drags,
+      gives: state.gives,
+      giftsAccepted: state.giftsAccepted,
+      organizeCount: state.organizeCount,
+      totalActions: state.totalActions,
+      monsterState: state.monsterState,
+      depth: journeyDepth(),
+      arrangement,
+      calm: state.calm,
+      calmBand: calmBand(),
+      calmMethods: { ...state.calmMethods },
+      mischiefCount: state.mischiefCount,
+      wantsCapture: wantsCapture ? { ...wantsCapture } : null,
+    };
+    profile.metaphor = pickSelfMetaphor(profile);
+    return profile;
+  }
+
+  function localPersonalitySummary(profile) {
+    const lines = [];
+    const m = profile.metaphor;
+    const a = profile.arrangement;
+    const wants = profile.wantsCapture;
+
+    lines.push("This room holds two kinds of truth.");
+    lines.push("What you choose to keep in a photograph leans toward what you want.");
+    lines.push("How you coaxed a temperamental cookie toward stillness leans toward what your patterns already know.");
+    lines.push("");
+
+    lines.push("— What you want (the capture) —");
+    if (!wants) {
+      lines.push("No keepsake yet. When the cookie settles and you take a picture, that framed mood becomes a clue to what you hoped to hold still.");
+      lines.push("Until then, this section waits for a calmed moment and your camera.");
+    } else {
+      lines.push(`You framed a moment with ${wants.moodName} in ${wants.atmosphereText}.`);
+      if (wants.scene) {
+        lines.push(`The keepsake named itself “${wants.scene.title}.” ${wants.scene.blurb}`);
+      }
+      lines.push(`In that frame, your whimsical mirror looked like ${wants.metaphor.name}.`);
+      lines.push(wants.metaphor.text);
+      lines.push(`A want glimpsed there: ${wants.metaphor.need}.`);
+      lines.push(`The room’s arrangement in the photo felt ${wants.arrangement.label} — ${wants.arrangement.metaphor.name}: ${wants.arrangement.metaphor.text}`);
+      if (wants.calmBand) {
+        lines.push(`You waited until the temper felt ${wants.calmBand} before keeping the frame — stillness was part of the wish.`);
+      }
+      lines.push("A photograph is a wish made still: not always what you do by habit, but what you longed to keep.");
+    }
+
+    lines.push("");
+    lines.push("— How you soothed the temper (subconscious style) —");
+    const methods = profile.calmMethods || wants?.calmMethods || {};
+    const rankedMethods = Object.entries(methods).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
+    const calmPortraits = {
+      softPet: "You reached for softness again and again — careful contact as a way to bargain with chaos. Subconsciously, tenderness may be how you ask storms to sit.",
+      gift: "You offered objects across the gap. Giving appeared as your bridge to calm — a habit of soothing through sharing, not only through holding.",
+      patience: "You waited. Stillness was your tool. Subconsciously, you may trust that unrest softens when it is not chased.",
+      order: "You quieted the room by placing things. Order was your lullaby — a practiced belief that shape can settle a living temper.",
+      space: "You stepped back when it bristled. Distance was care. Subconsciously, you may calm others by refusing to corner them.",
+    };
+    if (!rankedMethods.length) {
+      lines.push("You have not yet found a steady soothing path — or the visit is still early. The temper is a teacher; methods leave fingerprints later.");
+    } else {
+      const topMethod = rankedMethods[0][0];
+      lines.push(calmPortraits[topMethod] || calmPortraits.patience);
+      if (rankedMethods.length > 1 && rankedMethods[1][1] > 0) {
+        lines.push(`Another path also worked for you (${rankedMethods[1][0]}). Habit rarely soothes in only one dialect.`);
+      }
+      lines.push(`Soothe-counts this visit: ${rankedMethods.map(([k, n]) => `${k} ${n}`).join(" · ")}.`);
+    }
+    if ((profile.mischiefCount || 0) >= 6) {
+      lines.push("The cookie scattered the room often. You kept meeting mischief — persistence itself may be part of your undercurrent.");
+    }
+
+    lines.push("");
+    lines.push("— What your patterns already know (the play) —");
+    lines.push(`Across the visit, your whimsical undercurrent reads as ${m.name}.`);
+    lines.push(m.text);
+    lines.push(`A need that kept showing up in behavior: ${m.need}.`);
+    lines.push("");
+
+    const portraits = {
+      gentleness: "Your hands returned to comfort. Softness is not only a wish here — it is a practiced way of meeting the living thing in the room.",
+      control: "You rearranged often. Order may be how your body steadies unease, even when another will does not follow the map.",
+      curiosity: "You noticed, poked, waited. Wonder led more than claiming did — a subconscious habit of asking before settling.",
+      avoidance: "You left space. Stepping back appears not as emptiness, but as a practiced doorway into closeness on your own timing.",
+    };
+
+    if (profile.topVal < 10) {
+      lines.push("You are still early. Subconscious weather has not thickened yet — keep touching, waiting, rearranging.");
+    } else {
+      lines.push(portraits[profile.top] || portraits.curiosity);
+      if (profile.secondVal > 12) {
+        lines.push(`Beside that, another undercurrent (${profile.second}) also left fingerprints. Habit is rarely a single note.`);
+      }
+    }
+
+    lines.push("");
+    lines.push("How the room was lived (not only framed):");
+    lines.push(`Your ongoing arrangement feels ${a.label}.`);
+    lines.push(`${a.metaphor.name} — ${a.metaphor.text}`);
+
+    lines.push("");
+    if (profile.pets >= profile.drags && profile.pets >= 3) {
+      lines.push("In practice: contact outpaced rearranging. Your body reached for presence.");
+    } else if (profile.drags > profile.pets + 2) {
+      lines.push("In practice: repositioning outpaced petting. Unease often asked to be moved, not held.");
+    }
+    if (profile.gives + profile.giftsAccepted >= 2) {
+      lines.push("Offering objects across the gap appeared as a habit of sharing space, not only managing it.");
+    }
+    if (profile.organizeCount >= 3) {
+      lines.push("Alignment kept calling. Neatness may be how this undercurrent quiets noise.");
+    }
+    if (traits.control > 25 && (state.monsterState === "shy" || state.monsterState === "resistant" || traits.avoidance > 12)) {
+      lines.push("When arranging sharpened, the companion leaned away. Push and retreat answered each other.");
+    }
+    if (traits.gentleness > 25) {
+      lines.push("Soft light gathered where kindness repeated. The atmosphere remembered a practiced tenderness.");
+    }
+
+    if (wants) {
+      lines.push("");
+      lines.push("— Between want and pattern —");
+      const wantTop = Object.entries(wants.traits || {}).sort((a, b) => b[1] - a[1])[0];
+      if (wantTop && wantTop[0] !== profile.top && profile.topVal >= 10) {
+        lines.push(`The keepsake leaned toward ${wantTop[0]}, while your hands across time leaned toward ${profile.top}. Wish and habit are allowed to differ — that gap is information, not a failure.`);
+      } else if (wantTop && wantTop[0] === profile.top) {
+        lines.push("What you framed and how you kept moving rhyme. Desire and habit may be speaking in the same soft voice.");
+      } else {
+        lines.push("Hold the photograph beside the visit. Notice what matches, and what the hands did when no one was posing.");
+      }
+      if (wants.arrangement?.style && wants.arrangement.style !== a.style) {
+        lines.push(`The photo held a ${wants.arrangement.label} room; the longer visit feels ${a.label}. One may be aspiration, the other the body’s default map.`);
+      }
+    }
+
+    lines.push("");
+    lines.push("If this portrait does not feel like you, the door is there. Leave, return another time, and let the room meet you newly.");
+    lines.push("This is not a verdict — only a reflection of what you wanted enough to keep, and what your play already revealed.");
+    return lines.join("\n");
+  }
+
+  function renderTraitBars(profile) {
+    const labels = {
+      gentleness: "Softness",
+      curiosity: "Wonder",
+      control: "Order",
+      avoidance: "Distance",
+    };
+    reportTraits.innerHTML = Object.keys(labels).map((k) => {
+      const v = Math.round(profile.traits[k]);
+      return `<div><span>${labels[k]}</span><div class="bar"><span style="width:${v}%"></span></div><span>${v}</span></div>`;
+    }).join("");
+  }
+
+  function renderSummaryCards(profile) {
+    const wants = profile.wantsCapture;
+    let html = "";
+    html += `<div class="report-section-label">What you want</div>`;
+    html += `<p class="report-hint">Read from the room you chose to capture — mood, atmosphere, and the keepsake’s story.</p>`;
+    if (wants) {
+      html += `<div class="metaphor-card wants"><strong>${wants.metaphor.name} · framed wish</strong>${wants.metaphor.text}<br><em>Want: ${wants.metaphor.need}</em><br><em>${wants.moodName} · ${wants.atmosphereText}</em></div>`;
+      if (wants.scene) {
+        html += `<div class="metaphor-card wants"><strong>Keepsake · ${wants.scene.title}</strong>${wants.scene.blurb}</div>`;
+      }
+      html += `<div class="metaphor-card wants"><strong>Captured arrangement · ${wants.arrangement.metaphor.name}</strong>${wants.arrangement.metaphor.text}</div>`;
+    } else {
+      html += `<div class="metaphor-card wants"><strong>No capture yet</strong>Take a picture in the room. That framed moment becomes a clue to what you want this place to hold.</div>`;
+    }
+
+    html += `<div class="report-section-label">What your patterns know</div>`;
+    html += `<p class="report-hint">Read from how you played — petting, arranging, offering, waiting — the subconscious undercurrent.</p>`;
+    html += `<div class="metaphor-card subcon"><strong>${profile.metaphor.name} · undercurrent</strong>${profile.metaphor.text}<br><em>Need: ${profile.metaphor.need}</em></div>`;
+    html += `<div class="metaphor-card subcon"><strong>Lived arrangement · ${profile.arrangement.metaphor.name}</strong>${profile.arrangement.metaphor.text}</div>`;
+    return html;
+  }
+
+  async function openSummaryReport(useAi = false) {
+    document.documentElement.classList.add("ui-scrollable");
+    const profile = buildBehaviorProfile();
+    reportPanel.hidden = false;
+    requestAnimationFrame(() => reportPanel.classList.add("open"));
+    renderTraitBars(profile);
+
+    const saved = localStorage.getItem("littleMonster_groqKey") || "";
+    if (saved && !llmKeyInput.value) llmKeyInput.value = saved;
+
+    const local = localPersonalitySummary(profile);
+    reportBody.innerHTML = `${renderSummaryCards(profile)}<pre style="white-space:pre-wrap;font-family:inherit;margin:0.35rem 0 0;"></pre>`;
+    reportBody.querySelector("pre").textContent = local;
+    reportSource.textContent = wantsCapture
+      ? "Capture = wants. Play patterns = subconscious undercurrents. Written in this browser only."
+      : "Play patterns shown below. Take a camera keepsake to add what you want into this reflection.";
+    updateCameraVisibility();
+
+    if (!useAi) return;
+
+    const key = (llmKeyInput.value || saved || "").trim();
+    if (!key) {
+      reportSource.textContent = "Local reflection ready. Add a free Groq API key below to rewrite with AI.";
+      return;
+    }
+
+    localStorage.setItem("littleMonster_groqKey", key);
+    summaryAiBtn.disabled = true;
+    summaryBtn.disabled = true;
+    reportSource.textContent = "Asking a free LLM for a deeper reflection…";
+
+    const wants = profile.wantsCapture;
+    const prompt = `You are a gentle, poetic writer creating a short personality reflection (220-300 words) for someone who played a cozy whimsical browser game with a little cookie companion in a room.
+
+Core frame (must follow):
+- The CAMERA CAPTURE (if present) reflects what the player WANTS — the mood, atmosphere, and arrangement they chose to keep.
+- The PLAY BEHAVIOR across the visit reflects SUBCONSCIOUS PATTERNS — habits of petting, arranging, giving, waiting, retreating.
+- Hold both truths. If they rhyme, say so softly. If they diverge, treat the gap as meaningful, never as failure.
+
+Rules:
+- Speak in second person ("you").
+- Be insightful but kind; never cruel or clinical-pathologizing.
+- Do NOT use blunt labels like "You are controlling" as a diagnosis. Describe patterns and tendencies.
+- Structure roughly as: (1) what the capture suggests they want, (2) what their hands/play suggest they already do, (3) the space between, (4) one quiet question.
+- If no capture exists, say the wants section is still waiting for a photograph, then focus on play patterns.
+- Include whimsical metaphors (you may use or remix: ${profile.metaphor.name}${wants ? `; capture metaphor: ${wants.metaphor.name}` : ""}).
+- Plain paragraphs only, no markdown headings or bullet lists.
+
+Play / subconscious data:
+${JSON.stringify({ ...profile, wantsCapture: undefined }, null, 2)}
+
+Wants / capture data (may be null):
+${JSON.stringify(wants, null, 2)}`;
+
+    try {
+      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${key}`,
+        },
+        body: JSON.stringify({
+          model: "llama-3.1-8b-instant",
+          temperature: 0.85,
+          messages: [
+            { role: "system", content: "You write brief, warm personality reflections that distinguish conscious wants (captures) from subconscious play patterns." },
+            { role: "user", content: prompt },
+          ],
+        }),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(errText.slice(0, 180) || res.statusText);
+      }
+      const data = await res.json();
+      const text = data.choices?.[0]?.message?.content?.trim();
+      if (!text) throw new Error("Empty response");
+      reportBody.innerHTML = `${renderSummaryCards(profile)}<pre style="white-space:pre-wrap;font-family:inherit;margin:0.35rem 0 0;"></pre>`;
+      reportBody.querySelector("pre").textContent = text;
+      reportSource.textContent = "AI reflection via Groq — wants from capture, patterns from play. Kept local to this browser.";
+    } catch (err) {
+      reportBody.innerHTML = `${renderSummaryCards(profile)}<pre style="white-space:pre-wrap;font-family:inherit;margin:0.35rem 0 0;"></pre>`;
+      reportBody.querySelector("pre").textContent = local;
+      reportSource.textContent = `AI unavailable (${String(err.message || err).slice(0, 80)}). Showing the local reflection instead.`;
+    } finally {
+      summaryAiBtn.disabled = false;
+      summaryBtn.disabled = false;
+    }
+  }
+
+  function closeSummaryReport() {
+    reportPanel.classList.remove("open");
+    if (!state.journalOpen) document.documentElement.classList.remove("ui-scrollable");
+    setTimeout(() => { reportPanel.hidden = true; }, 350);
+  }
+
+
+  function openLeaveDialog() {
+    leavePanel.hidden = false;
+    requestAnimationFrame(() => leavePanel.classList.add("open"));
+  }
+
+  function closeLeaveDialog() {
+    leavePanel.classList.remove("open");
+    setTimeout(() => { leavePanel.hidden = true; }, 350);
+  }
+
+  function resetJourney() {
+    closeLeaveDialog();
+    closeSummaryReport();
+    closeJournal();
+    closePhoto();
+    if (floatTimer) { clearInterval(floatTimer); floatTimer = null; }
+
+    Object.keys(traits).forEach((k) => { traits[k] = 0; });
+    state.monsterState = "idle";
+    state.petStreak = 0;
+    state.giftsAccepted = 0;
+    state.organizeCount = 0;
+    state.totalActions = 0;
+    state.pets = 0;
+    state.drags = 0;
+    state.gives = 0;
+    state.nudgeFired = { 1: false, 2: false, 3: false, 4: false };
+    state.recentActions = [];
+    state.attachedGifts = new Set();
+    state.targetExplore = null;
+    state.atmosphere = null;
+    state.reflectionIndex = 0;
+    state.reflectionsShown = new Set();
+    state.finalMirrorShown = false;
+    state.lastReflectionAt = 0;
+    state.unlockedJournal = new Set();
+    state.unreadJournal = new Set();
+    state.interactive = false;
+    state.discoveries = new Set();
+    state.rewardMilestones = new Set();
+    state.unlockedDecor = new Set();
+    state.mysteryCooldownUntil = 0;
+    state.onboardingDone = false;
+    state.calm = 18;
+    state.calmMethods = { softPet: 0, gift: 0, patience: 0, order: 0, space: 0 };
+    state.petPace = [];
+    state.lastPatienceAt = 0;
+    state.lastSpaceCalmAt = 0;
+    state.mischiefCount = 0;
+    wantsCapture = null;
+    lastPhotoScene = null;
+    lastPhotoProfile = null;
+    photoMode = "room";
+
+    room.querySelectorAll(".obj[data-reward], .secret-crumb").forEach((el) => el.remove());
+    if (calmHud) calmHud.classList.remove("visible", "settled", "restless");
+    if (calmFill) calmFill.style.width = "18%";
+    if (calmLabelEl) calmLabelEl.textContent = "restless";
+    objects = getObjects();
+    objects.forEach((obj) => {
+      obj.classList.remove("gifted", "hint-shimmer", "dragging");
+      const pos = DEFAULT_LAYOUT[obj.id];
+      if (pos) setPos(obj, pos[0], pos[1]);
+    });
+    setPos(monster, DEFAULT_LAYOUT.monster[0], DEFAULT_LAYOUT.monster[1]);
+    setMonsterState("idle");
+    monster.style.transform = "rotate(8deg)";
+    setTimeout(() => { monster.style.transform = ""; }, 4000);
+
+    room.classList.remove("room-ordered", "room-lived-in", "has-nest", "has-memory", "atm-soft", "atm-ordered", "atm-wonder", "atm-tender", "star-twinkle");
+    Object.values(traces).forEach((el) => el && el.classList.remove("show"));
+    cameraBtn.classList.remove("visible", "pulse-invite");
+    journalBtn.classList.remove("has-new");
+    roomTitle.classList.remove("visible");
+    floatNote.classList.remove("show");
+    if (dust) dust.style.opacity = "";
+    stage.style.background = "";
+    ["--wall-top","--wall-bot","--floor","--floor-board","--sky-top","--sky-bot","--light-wash","--mood-tint","--corner-glow","--veil-color","--veil-opacity","--inner-glow","--atm-opacity","--sat","--bright","--contrast","--hue","--lamp-x","--lamp-y"].forEach((p) => room.style.removeProperty(p));
+    document.querySelectorAll(".curtain").forEach((el) => { el.style.width = ""; el.style.opacity = ""; });
+
+    overlay.classList.remove("hidden");
+    overlayTitle.classList.remove("show");
+    overlaySubtitle.classList.remove("show");
+    overlayText.classList.remove("show");
+    runIntro();
+    showFleetingHint("The room begins again.");
+  }
+
+  function updateCameraVisibility() {
+    if (state.interactive || journeyDepth() >= 8 || state.totalActions >= 3) {
+      cameraBtn.classList.add("visible");
+      updateCalmUI();
+    }
+  }
+
+  function choosePersonalityScene(profile) {
+    const t = profile.traits;
+    const a = profile.arrangement.style;
+    const mood = profile.monsterState || state.monsterState || "idle";
+    const playful = t.curiosity >= 16 && (a === "scatter" || profile.drags >= 6);
+    const tender = t.gentleness >= 18 && profile.pets >= 4;
+    const steward = t.control >= 18 || a === "ordered" || profile.organizeCount >= 3;
+    const nestish = t.avoidance >= 14 || a === "nest";
+    const wonder = t.curiosity >= 20 || a === "clustered";
+    const giftish = profile.giftsAccepted >= 2 || profile.gives >= 2;
+    const tug = t.control >= 20 && t.gentleness >= 14;
+    const storm = t.control >= 24 && (mood === "resistant" || mood === "shy");
+
+    const scenes = [];
+    const moodScenes = {
+      idle: {
+        id: "felt-idle",
+        title: "Hearth-Drowsing Sprite",
+        blurb: "A quiet familiar resting in the room — softness with nowhere to rush.",
+        craft: "idle",
+      },
+      curious: {
+        id: "felt-curious",
+        title: "Keyhole Famulus",
+        blurb: "Peeping eyes and a lean toward the unknown — wonder close enough to touch.",
+        craft: "curious",
+      },
+      happy: {
+        id: "felt-happy",
+        title: "Honey-Hex Darling",
+        blurb: "Warm cheeks and a bright little glow — joy as a household spell.",
+        craft: "happy",
+      },
+      shy: {
+        id: "felt-shy",
+        title: "Veil-Moth Wisp",
+        blurb: "Half-hid at the edge of the frame — distance made delicate, not cold.",
+        craft: "shy",
+      },
+      resistant: {
+        id: "felt-resistant",
+        title: "Bramble-Ward Imp",
+        blurb: "Thorny blanket-stitch armor — a boundary cut from wool and will.",
+        craft: "resistant",
+      },
+      sleepy: {
+        id: "felt-sleepy",
+        title: "Moonmilk Slumberkin",
+        blurb: "Closed-eye French knots and a moonmilk patch — rest as ritual.",
+        craft: "sleepy",
+      },
+      exploring: {
+        id: "felt-exploring",
+        title: "Cobweb Cartographer",
+        blurb: "Mid-wander through the room — charting a mild enchantment.",
+        craft: "exploring",
+      },
+    };
+
+    scenes.push(moodScenes[mood] || moodScenes.idle);
+
+    if (steward) {
+      scenes.push({
+        id: "felt-cup",
+        title: "Steward of the Warm Cup",
+        blurb: "Coffee appliquéd into careful paws — order as a soft household charm.",
+        craft: "order",
+        prop: "mug",
+      });
+    }
+    if (playful) {
+      scenes.push({
+        id: "felt-yarn",
+        title: "Yarn-Hex Toss",
+        blurb: "A woolly comet leaving felt paws — playfulness mid-spell.",
+        craft: "play",
+        prop: "yarn",
+      });
+    }
+    if (tender) {
+      scenes.push({
+        id: "felt-hug",
+        title: "Keeper of Soft Hours",
+        blurb: "Cushion and creature stitched cheek-to-cheek — gentleness made tangible.",
+        craft: "soft",
+        prop: "cushion",
+      });
+    }
+    if (wonder) {
+      scenes.push({
+        id: "felt-star",
+        title: "Moon-Pocket Reader",
+        blurb: "Book and star sewn into one charm — curiosity as night-thread.",
+        craft: "wonder",
+        prop: "star",
+      });
+    }
+    if (nestish) {
+      scenes.push({
+        id: "felt-nest",
+        title: "Threshold Nest Charm",
+        blurb: "A den of scraps by the door-felt — closeness arranged at a careful pace.",
+        craft: "nest",
+        prop: "nest",
+      });
+    }
+    if (giftish) {
+      scenes.push({
+        id: "felt-gift",
+        title: "Offering Sprig",
+        blurb: "A plant patch held outward — giving as a quiet hex of stay.",
+        craft: "gift",
+        prop: "plant",
+      });
+    }
+    if (tug) {
+      scenes.push({
+        id: "felt-blend",
+        title: "Cup & Comet Charm",
+        blurb: "One paw for ritual coffee, one for flying yarn — two weathers in one felt body.",
+        craft: "blend",
+        prop: "both",
+      });
+    }
+    if (storm) {
+      scenes.push({
+        id: "felt-ward",
+        title: "Bramble Clock Ward",
+        blurb: "When arranging grew sharp, the felt familiar pushed the clock away.",
+        craft: "storm",
+        prop: "clock",
+      });
+    }
+
+    if (scenes.length === 1) return scenes[0];
+    if (Math.random() < 0.5) return scenes[0];
+    return scenes[1 + Math.floor(Math.random() * (scenes.length - 1))];
+  }
+
+  function drawPlushPortrait(ctx, cx, cy, scale, mood) {
+    const s = scale;
+    const dough = {
+      idle: ["#f6d7a8", "#e4b978", "#c99252"],
+      happy: ["#ffe2b0", "#f0c078", "#dca050"],
+      curious: ["#f0d8b8", "#d8b888", "#c09868"],
+      shy: ["#e8d0b0", "#d0b088", "#b89068"],
+      resistant: ["#ecc0a0", "#d49870", "#c07850"],
+      sleepy: ["#e0c8b0", "#c8a888", "#b09070"],
+      exploring: ["#f2d8a8", "#e0b870", "#c99850"],
+    }[mood] || ["#f6d7a8", "#e4b978", "#c99252"];
+
+    // soft ground shadow
+    ctx.fillStyle = "rgba(60,40,30,0.18)";
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + 34 * s, 36 * s, 10 * s, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // cookie body
+    const g = ctx.createRadialGradient(cx - 10 * s, cy - 12 * s, 4 * s, cx, cy, 36 * s);
+    g.addColorStop(0, dough[0]);
+    g.addColorStop(0.55, dough[1]);
+    g.addColorStop(1, dough[2]);
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 34 * s, 34 * s, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(150,95,45,0.28)";
+    ctx.lineWidth = 1.5 * s;
+    ctx.stroke();
+
+    // chocolate chips
+    const chips = [
+      [-16, -14, 4], [14, -10, 4.5], [-18, 10, 3.5], [12, 14, 4], [2, -20, 3],
+    ];
+    chips.forEach(([dx, dy, r]) => {
+      ctx.fillStyle = "#3d2218";
+      ctx.beginPath();
+      ctx.ellipse(cx + dx * s, cy + dy * s, r * s, r * 0.85 * s, 0.3, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // Cookie Monster–style googly eyes: large whites, close (tiny gap), big offset pupils
+    const eyeY = mood === "sleepy" ? 0 : (mood === "curious" ? -7 : -6);
+    const eyeGap = 10.5 * s; // center-to-center; leaves a small gap between discs
+    const eyeR = mood === "curious" ? 8.2 * s : 7.6 * s;
+    if (mood === "sleepy") {
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.ellipse(cx - eyeGap, cy + eyeY, eyeR, 2.2 * s, 0, 0, Math.PI * 2);
+      ctx.ellipse(cx + eyeGap, cy + eyeY, eyeR, 2.2 * s, 0, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.ellipse(cx - eyeGap, cy + eyeY, eyeR, eyeR, 0, 0, Math.PI * 2);
+      ctx.ellipse(cx + eyeGap, cy + eyeY, eyeR, eyeR, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "rgba(40,25,15,0.12)";
+      ctx.beginPath();
+      ctx.ellipse(cx - eyeGap, cy + eyeY + 1.5 * s, eyeR * 0.9, eyeR * 0.35, 0, 0, Math.PI * 2);
+      ctx.ellipse(cx + eyeGap, cy + eyeY + 1.5 * s, eyeR * 0.9, eyeR * 0.35, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      const pupil = mood === "curious" ? 4.4 * s : 4 * s;
+      ctx.fillStyle = "#111";
+      ctx.beginPath();
+      // pupils lean inward a bit — that Cookie Monster cross-eyed googly feel
+      if (mood === "resistant") {
+        ctx.ellipse(cx - eyeGap - 1.8 * s, cy + eyeY - 1.5 * s, pupil, pupil, 0, 0, Math.PI * 2);
+        ctx.ellipse(cx + eyeGap + 1.8 * s, cy + eyeY - 1.5 * s, pupil, pupil, 0, 0, Math.PI * 2);
+      } else if (mood === "exploring") {
+        ctx.ellipse(cx - eyeGap + 2.2 * s, cy + eyeY - 0.8 * s, pupil, pupil, 0, 0, Math.PI * 2);
+        ctx.ellipse(cx + eyeGap + 1.2 * s, cy + eyeY - 0.4 * s, pupil, pupil, 0, 0, Math.PI * 2);
+      } else if (mood === "shy") {
+        ctx.ellipse(cx - eyeGap + 2 * s, cy + eyeY + 1 * s, pupil * 0.85, pupil * 0.85, 0, 0, Math.PI * 2);
+        ctx.ellipse(cx + eyeGap - 2 * s, cy + eyeY + 1 * s, pupil * 0.85, pupil * 0.85, 0, 0, Math.PI * 2);
+      } else {
+        ctx.ellipse(cx - eyeGap + 1.8 * s, cy + eyeY + 0.4 * s, pupil, pupil, 0, 0, Math.PI * 2);
+        ctx.ellipse(cx + eyeGap - 2.2 * s, cy + eyeY - 0.6 * s, pupil, pupil, 0, 0, Math.PI * 2);
+      }
+      ctx.fill();
+    }
+
+    if (mood === "happy" || mood === "shy") {
+      ctx.fillStyle = "rgba(232,140,140,0.55)";
+      ctx.beginPath();
+      ctx.ellipse(cx - 18 * s, cy + 8 * s, 5 * s, 3 * s, 0, 0, Math.PI * 2);
+      ctx.ellipse(cx + 18 * s, cy + 8 * s, 5 * s, 3 * s, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // mouth
+    ctx.strokeStyle = "#3d2a18";
+    ctx.lineWidth = 2.2 * s;
+    ctx.beginPath();
+    if (mood === "resistant") {
+      ctx.moveTo(cx - 6 * s, cy + 14 * s);
+      ctx.lineTo(cx + 6 * s, cy + 14 * s);
+    } else if (mood === "curious") {
+      ctx.arc(cx, cy + 10 * s, 4 * s, 0, Math.PI * 2);
+    } else {
+      ctx.arc(cx, cy + 10 * s, mood === "happy" ? 9 * s : 7 * s, 0.15 * Math.PI, 0.85 * Math.PI);
+    }
+    ctx.stroke();
+  }
+
+  function renderMonsterPortraitFallback(profile) {
+    const scene = choosePersonalityScene(profile);
+    const w = photoCanvas.width;
+    const h = photoCanvas.height;
+    const ctx = photoCanvas.getContext("2d");
+    const mood = profile.monsterState || state.monsterState || "idle";
+
+    const sky = ctx.createLinearGradient(0, 0, 0, h);
+    sky.addColorStop(0, "#c8dce8");
+    sky.addColorStop(0.45, "#e8d5c4");
+    sky.addColorStop(1, "#c4a484");
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, w, h);
+
+    const m = getPos(monster);
+    const near = objects
+      .map((obj) => {
+        const p = getPos(obj);
+        const d = Math.hypot(p.left - m.left, p.top - m.top);
+        return { obj, p, d };
+      })
+      .filter((x) => x.d < 28)
+      .sort((a, b) => a.d - b.d)
+      .slice(0, 4);
+
+    ctx.font = `${Math.round(h * 0.14)}px serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    near.forEach(({ obj, p }) => {
+      const px = w * 0.5 + ((p.left - m.left) / 28) * w * 0.38;
+      const py = h * 0.55 + ((p.top - m.top) / 28) * h * 0.32;
+      ctx.globalAlpha = 0.92;
+      ctx.fillText(obj.textContent.trim(), px, py);
+    });
+    ctx.globalAlpha = 1;
+
+    drawPlushPortrait(ctx, w * 0.5, h * 0.48, Math.min(w, h) / 95, mood);
+
+    ctx.fillStyle = "rgba(40,28,22,0.72)";
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(w / 2 - 220, h - 58, 440, 36, 18);
+    else ctx.rect(w / 2 - 220, h - 58, 440, 36);
+    ctx.fill();
+    ctx.fillStyle = "#f7ebe3";
+    ctx.font = "20px Georgia, serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText(scene.title, w / 2, h - 34);
+    return scene;
+  }
+
+  function renderRoomKeepsakeToCanvas(profile, scene) {
+    const w = photoCanvas.width;
+    const h = photoCanvas.height;
+    const ctx = photoCanvas.getContext("2d");
+    const cs = getComputedStyle(room);
+    const wallTop = (cs.getPropertyValue("--wall-top") || "#c8ddf0").trim();
+    const wallBot = (cs.getPropertyValue("--wall-bot") || "#b5d0e8").trim();
+    const floor = (cs.getPropertyValue("--floor") || "#c4a484").trim();
+    const floorBoard = (cs.getPropertyValue("--floor-board") || "#b8956f").trim();
+    const skyTop = (cs.getPropertyValue("--sky-top") || "#b8d4e8").trim();
+    const skyBot = (cs.getPropertyValue("--sky-bot") || "#f2e2c4").trim();
+    const mood = profile.monsterState || state.monsterState || "idle";
+
+    const wall = ctx.createLinearGradient(0, 0, 0, h * 0.58);
+    wall.addColorStop(0, wallTop);
+    wall.addColorStop(1, wallBot);
+    ctx.fillStyle = wall;
+    ctx.fillRect(0, 0, w, h * 0.58);
+
+    const fl = ctx.createLinearGradient(0, h * 0.58, 0, h);
+    fl.addColorStop(0, floor);
+    fl.addColorStop(1, floorBoard);
+    ctx.fillStyle = fl;
+    ctx.fillRect(0, h * 0.58, w, h * 0.42);
+
+    // window
+    const wx = w * 0.36, wy = h * 0.08, ww = w * 0.28, wh = h * 0.28;
+    const sky = ctx.createLinearGradient(0, wy, 0, wy + wh);
+    sky.addColorStop(0, skyTop);
+    sky.addColorStop(1, skyBot);
+    ctx.fillStyle = sky;
+    ctx.fillRect(wx, wy, ww, wh);
+    ctx.strokeStyle = "rgba(90,60,40,0.28)";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(wx, wy, ww, wh);
+    ctx.beginPath();
+    ctx.moveTo(wx + ww / 2, wy);
+    ctx.lineTo(wx + ww / 2, wy + wh);
+    ctx.moveTo(wx, wy + wh / 2);
+    ctx.lineTo(wx + ww, wy + wh / 2);
+    ctx.stroke();
+
+    // simple furniture silhouettes
+    ctx.fillStyle = "rgba(180,140,110,0.55)";
+    ctx.fillRect(w * 0.12, h * 0.48, w * 0.22, h * 0.12);
+    ctx.fillStyle = "rgba(160,120,95,0.5)";
+    ctx.fillRect(w * 0.62, h * 0.52, w * 0.18, h * 0.08);
+    ctx.fillStyle = "rgba(200,150,120,0.35)";
+    ctx.beginPath();
+    ctx.ellipse(w * 0.5, h * 0.78, w * 0.18, h * 0.06, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.font = `${Math.round(h * 0.075)}px serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    objects.forEach((obj) => {
+      const p = getPos(obj);
+      ctx.globalAlpha = 0.95;
+      ctx.fillText(obj.textContent.trim(), (p.left / 100) * w, (p.top / 100) * h);
+    });
+    ctx.globalAlpha = 1;
+
+    const m = getPos(monster);
+    drawPlushPortrait(ctx, (m.left / 100) * w + 10, (m.top / 100) * h, Math.min(w, h) / 210, mood);
+
+    const title = scene?.title || "Ideal room keepsake";
+    ctx.fillStyle = "rgba(40,28,22,0.72)";
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(w / 2 - 240, h - 52, 480, 34, 17);
+    else ctx.rect(w / 2 - 240, h - 52, 480, 34);
+    ctx.fill();
+    ctx.fillStyle = "#f7ebe3";
+    ctx.font = "18px Georgia, serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText(title, w / 2, h - 30);
+    return scene;
+  }
+
+  function fitRoomShot(shot, frame, rw, rh) {
+    const fw = frame.clientWidth || photoPortrait?.clientWidth || 1;
+    const fh = frame.clientHeight || photoPortrait?.clientHeight || 1;
+    const width = rw || shot.offsetWidth || room.clientWidth;
+    const height = rh || shot.offsetHeight || room.clientHeight;
+    if (!fw || !fh || !width || !height) return;
+    const scale = Math.min(fw / width, fh / height);
+    const left = (fw - width * scale) / 2;
+    const top = (fh - height * scale) / 2;
+    shot.style.width = `${width}px`;
+    shot.style.height = `${height}px`;
+    shot.style.transformOrigin = "top left";
+    shot.style.transform = `translate(${left}px, ${top}px) scale(${scale})`;
+  }
+
+  function captureRoomPhoto(profile) {
+    const scene = choosePersonalityScene(profile);
+    photoMode = "room";
+    if (photoPortrait) {
+      photoPortrait.classList.add("mode-room");
+      photoPortrait.classList.remove("mode-cookie");
+      photoPortrait.innerHTML = "";
+
+      const rw = room.clientWidth;
+      const rh = room.clientHeight;
+      const frame = document.createElement("div");
+      frame.className = "room-capture-frame";
+
+      const shot = room.cloneNode(true);
+      shot.removeAttribute("id");
+      shot.className = `${room.className} room-shot`.trim();
+      shot.style.cssText = room.style.cssText;
+      shot.style.width = `${rw}px`;
+      shot.style.height = `${rh}px`;
+      shot.style.position = "absolute";
+      shot.style.left = "0";
+      shot.style.top = "0";
+      shot.style.margin = "0";
+      shot.style.transformOrigin = "top left";
+      shot.style.pointerEvents = "none";
+      shot.querySelectorAll("#overlay, #float-note, #hint-text, #mirror-text, #room-title, .secret-crumb, #door").forEach((el) => el.remove());
+
+      // Keep cookie at its live room spot (clone loses #monster id, so class + inline pos matter)
+      const monClone = shot.querySelector("#monster") || shot.querySelector(".monster");
+      if (monClone) {
+        monClone.classList.add("monster");
+        const mp = getPos(monster);
+        monClone.style.position = "absolute";
+        monClone.style.left = `${mp.left}%`;
+        monClone.style.top = `${mp.top}%`;
+        monClone.style.width = "72px";
+        monClone.style.height = "78px";
+        monClone.style.zIndex = "10";
+        monClone.style.transform = "";
+      }
+
+      shot.querySelectorAll("[id]").forEach((el) => el.removeAttribute("id"));
+      frame.appendChild(shot);
+
+      const pill = document.createElement("div");
+      pill.className = "room-caption-pill";
+      pill.textContent = scene.title;
+      photoPortrait.appendChild(frame);
+      photoPortrait.appendChild(pill);
+
+      const fit = () => fitRoomShot(shot, frame, rw, rh);
+      requestAnimationFrame(() => {
+        fit();
+        requestAnimationFrame(fit);
+      });
+      setTimeout(fit, 50);
+      setTimeout(fit, 200);
+    }
+    renderRoomKeepsakeToCanvas(profile, scene);
+    return scene;
+  }
+
+  function captureMonsterCloseup(profile) {
+    const scene = choosePersonalityScene(profile);
+    const mood = profile.monsterState || state.monsterState || "idle";
+    const m = getPos(monster);
+    photoMode = "cookie";
+
+    if (photoPortrait) {
+      photoPortrait.classList.remove("mode-room");
+      photoPortrait.classList.add("mode-cookie");
+      photoPortrait.innerHTML = "";
+      const stageEl = document.createElement("div");
+      stageEl.className = "portrait-stage";
+
+      const near = objects
+        .map((obj) => {
+          const p = getPos(obj);
+          const d = Math.hypot(p.left - m.left, p.top - m.top);
+          return { obj, p, d };
+        })
+        .filter((x) => x.d < 30)
+        .sort((a, b) => a.d - b.d)
+        .slice(0, 5);
+
+      near.forEach(({ obj, p }) => {
+        const prop = document.createElement("div");
+        prop.className = "portrait-obj";
+        prop.textContent = obj.textContent.trim();
+        const px = 50 + ((p.left - m.left) / 30) * 38;
+        const py = 56 + ((p.top - m.top) / 30) * 30;
+        prop.style.left = `${Math.max(8, Math.min(92, px))}%`;
+        prop.style.top = `${Math.max(12, Math.min(88, py))}%`;
+        stageEl.appendChild(prop);
+      });
+
+      const clone = monster.cloneNode(true);
+      clone.removeAttribute("id");
+      clone.removeAttribute("style");
+      clone.className = `portrait-monster ${mood}`;
+      stageEl.appendChild(clone);
+
+      const title = document.createElement("div");
+      title.className = "portrait-title";
+      title.textContent = scene.title;
+      stageEl.appendChild(title);
+      photoPortrait.appendChild(stageEl);
+    }
+
+    renderMonsterPortraitFallback(profile);
+    return scene;
+  }
+
+  function buildFeltImagePrompt(profile, scene) {
+    const moodName = moodMetaphor(profile.monsterState || state.monsterState);
+    const propHints = {
+      mug: "holding a tiny felt coffee cup",
+      yarn: "tossing a ball of pink yarn through the air with stitch motion lines",
+      cushion: "hugging a dusty-rose felt cushion",
+      star: "beside a felt book and a sewn gold star",
+      nest: "sitting in a scrap-felt nest near a tiny door",
+      plant: "offering a small potted felt plant",
+      both: "holding a coffee cup in one paw and yarn flying from the other",
+      clock: "pushing away a round felt clock",
+      map: "holding a tiny stitched map scrap",
+    };
+    const action = propHints[scene.prop] || `expressing the mood of ${scene.craft}`;
+    return [
+      "Handmade needle-felt and cut-felt craft photograph, product photography of artisan soft sculpture",
+      `a tiny cookie monster character named like \"${scene.title}\" / ${moodName}`,
+      `cute round chocolate-chip cookie creature with expressive face, golden-brown baked dough, ${action}`,
+      "handmade cookie soft sculpture look, chocolate chips, warm bakery lighting",
+      "mounted on a cream felt board with push pins and dashed blanket stitching border",
+      "cozy cottagecore witchy whimsical aesthetic, soft natural light, shallow depth of field",
+      "no plastic toys, no 3d render, no pixel art, no text overlay, no watermark",
+      scene.blurb,
+      `personality metaphor: ${profile.metaphor?.name || "Patchwork Traveler"}`,
+    ].join(". ");
+  }
+
+  function loadImage(url) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("Image failed to load"));
+      img.src = url;
+    });
+  }
+
+  function drawImageToPhotoCanvas(img) {
+    const ctx = photoCanvas.getContext("2d");
+    ctx.fillStyle = "#e0d3bf";
+    ctx.fillRect(0, 0, photoCanvas.width, photoCanvas.height);
+    const scale = Math.min(photoCanvas.width / img.width, photoCanvas.height / img.height);
+    const dw = img.width * scale;
+    const dh = img.height * scale;
+    ctx.drawImage(img, (photoCanvas.width - dw) / 2, (photoCanvas.height - dh) / 2, dw, dh);
+  }
+
+  function getImgKey() {
+    return (SITE_IMG_KEY || "").trim();
+  }
+
+  function hasImgKey() {
+    return !!getImgKey();
+  }
+
+  function updatePhotoModeUI() {
+    const ready = hasImgKey();
+    if (photoUnlock) photoUnlock.hidden = true;
+    if (photoMode === "room") {
+      if (photoZoom) {
+        photoZoom.hidden = false;
+        photoZoom.textContent = "Zoom into cookie";
+        photoZoom.classList.add("primary");
+      }
+      if (photoRegen) {
+        photoRegen.textContent = "Retake room";
+        photoRegen.classList.remove("primary");
+        photoRegen.title = "Capture a fresh picture of the whole room";
+      }
+      if (photoAi) photoAi.hidden = true;
+    } else {
+      if (photoZoom) {
+        photoZoom.hidden = false;
+        photoZoom.textContent = "Back to whole room";
+        photoZoom.classList.remove("primary");
+      }
+      if (photoRegen) {
+        photoRegen.textContent = "Retake cookie";
+        photoRegen.classList.add("primary");
+        photoRegen.title = "Capture a fresh zoomed cookie portrait";
+      }
+      if (photoAi) {
+        photoAi.hidden = !ready;
+        photoAi.disabled = !ready;
+      }
+    }
+  }
+
+  function updatePhotoUnlockUI() {
+    updatePhotoModeUI();
+  }
+
+  async function generateFeltImageAI(profile, scene) {
+    const key = getImgKey();
+    if (!key) throw new Error("Missing site image key");
+
+    const prompt = buildFeltImagePrompt(profile, scene);
+    const encoded = encodeURIComponent(prompt);
+    const seed = String(Math.floor(Math.random() * 1e9));
+    const params = new URLSearchParams({
+      model: "flux",
+      width: "840",
+      height: "560",
+      nologo: "true",
+      enhance: "true",
+      seed,
+      key,
+    });
+
+    const urls = [
+      `https://gen.pollinations.ai/image/${encoded}?${params.toString()}`,
+      `https://image.pollinations.ai/prompt/${encoded}?width=840&height=560&nologo=true&seed=${seed}&key=${encodeURIComponent(key)}`,
+    ];
+
+    let lastErr = null;
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, {
+          mode: "cors",
+          headers: { Authorization: `Bearer ${key}` },
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const blob = await res.blob();
+        if (!blob.type.startsWith("image/")) throw new Error("Not an image response");
+        const bitmap = await createImageBitmap(blob);
+        drawImageToPhotoCanvas(bitmap);
+        bitmap.close?.();
+        return "ai";
+      } catch (err) {
+        lastErr = err;
+      }
+    }
+    throw lastErr || new Error("AI image failed");
+  }
+
+  async function openPhoto() {
+    if (!isSettledForPhoto()) {
+      const tip = pick([
+        "Too restless for a still keepsake. Try soft pets — not a flurry of them.",
+        "Temper too high. A gift, or quiet waiting, may coax it calm.",
+        "It will not pose while mischievous. Gentle tidying or giving it space can help.",
+        "Soothe first. Forcing and chasing usually wakes the temper.",
+      ]);
+      showFloatNote(tip, 6200);
+      showFleetingHint("Not settled yet.");
+      updateCalmUI();
+      return false;
+    }
+
+    const profile = buildBehaviorProfile();
+    profile.monsterState = state.monsterState;
+    lastPhotoProfile = profile;
+    cameraBtn.disabled = true;
+    photoMode = "room";
+
+    try {
+      const scene = captureRoomPhoto(profile);
+      lastPhotoScene = scene;
+      recordWantsCapture(profile, scene);
+      photoCaption.textContent = "Ideal room keepsake";
+      photoStatus.textContent = `${scene.blurb} Settled wish saved. Zoom in anytime for your cookie character.`;
+    } catch (err) {
+      photoCaption.textContent = "Room keepsake";
+      photoStatus.textContent = "Could not make the keepsake — try again.";
+    }
+
+    photoPanel.hidden = false;
+    requestAnimationFrame(() => photoPanel.classList.add("open"));
+    cameraBtn.disabled = false;
+    updatePhotoModeUI();
+    return true;
+  }
+
+  function showCookieZoom() {
+    if (!lastPhotoProfile) {
+      openPhoto().then((ok) => { if (ok) showCookieZoom(); });
+      return;
+    }
+    const profile = buildBehaviorProfile();
+    profile.monsterState = state.monsterState;
+    lastPhotoProfile = profile;
+    const scene = captureMonsterCloseup(profile);
+    lastPhotoScene = scene;
+    photoCaption.textContent = "Cookie character close-up";
+    photoStatus.textContent = `${scene.blurb} Your creature portrait — save it, or return to the whole room.`;
+    updatePhotoModeUI();
+  }
+
+  function showRoomAgain() {
+    if (!lastPhotoProfile) {
+      openPhoto();
+      return;
+    }
+    if (!isSettledForPhoto()) {
+      photoStatus.textContent = "Temper rose again — soothe it before retaking the whole room.";
+      showFleetingHint("Not settled.");
+      return;
+    }
+    const profile = buildBehaviorProfile();
+    profile.monsterState = state.monsterState;
+    lastPhotoProfile = profile;
+    const scene = captureRoomPhoto(profile);
+    lastPhotoScene = scene;
+    photoCaption.textContent = "Ideal room keepsake";
+    photoStatus.textContent = `${scene.blurb} Whole-room wish. Zoom into your cookie when you like.`;
+    updatePhotoModeUI();
+  }
+
+  function togglePhotoZoom() {
+    if (photoMode === "room") showCookieZoom();
+    else showRoomAgain();
+  }
+
+  async function regenerateFeltPhoto() {
+    cameraBtn.disabled = true;
+    if (photoRegen) photoRegen.disabled = true;
+    try {
+      if (photoMode === "cookie") {
+        photoStatus.textContent = "Retaking cookie portrait…";
+        showCookieZoom();
+      } else {
+        if (!isSettledForPhoto()) {
+          photoStatus.textContent = "Too restless to retake the room — soothe it first.";
+          return;
+        }
+        photoStatus.textContent = "Retaking whole-room picture…";
+        const profile = buildBehaviorProfile();
+        profile.monsterState = state.monsterState;
+        lastPhotoProfile = profile;
+        const scene = captureRoomPhoto(profile);
+        lastPhotoScene = scene;
+        recordWantsCapture(profile, scene);
+        photoCaption.textContent = "Ideal room keepsake";
+        photoStatus.textContent = `${scene.blurb} Fresh settled frame saved as what you want right now.`;
+      }
+    } catch (err) {
+      photoStatus.textContent = "Could not retake — try again.";
+    } finally {
+      cameraBtn.disabled = false;
+      if (photoRegen) photoRegen.disabled = false;
+      updatePhotoModeUI();
+    }
+  }
+
+  async function makeRealisticFeltPhoto() {
+    if (photoMode !== "cookie") {
+      showCookieZoom();
+    }
+    if (!lastPhotoProfile) {
+      await openPhoto();
+      showCookieZoom();
+    }
+    if (!hasImgKey()) {
+      photoStatus.textContent = "Realistic felt photos aren’t set up on this site yet.";
+      return;
+    }
+    cameraBtn.disabled = true;
+    if (photoAi) photoAi.disabled = true;
+    photoStatus.textContent = "Asking the workshop for a realistic felt photo…";
+    try {
+      const profile = lastPhotoProfile;
+      profile.monsterState = state.monsterState;
+      const scene = lastPhotoScene || choosePersonalityScene(profile);
+      lastPhotoScene = scene;
+      photoCaption.textContent = scene.title;
+      await generateFeltImageAI(profile, scene);
+      photoStatus.textContent = `${scene.blurb} (realistic felt photograph)`;
+    } catch (err) {
+      photoStatus.textContent = "Workshop unavailable — keeping your cookie portrait.";
+    } finally {
+      cameraBtn.disabled = false;
+      updatePhotoModeUI();
+    }
+  }
+
+  function closePhoto() {
+    photoPanel.classList.remove("open");
+    setTimeout(() => { photoPanel.hidden = true; }, 350);
+  }
+
+  function downloadPhoto() {
+    const a = document.createElement("a");
+    a.download = photoMode === "cookie" ? "little-monster-cookie.png" : "little-monster-room.png";
+    a.href = photoCanvas.toDataURL("image/png");
+    a.click();
+  }
+
+  function maybeFreezeNudge() {
+    if (!state.interactive) return;
+    const idle = (now() - state.lastInteractAt) / 1000;
+
+    if (idle >= 8 && !state.nudgeFired[1]) {
+      state.nudgeFired[1] = true;
+      monster.classList.add("hint-pulse");
+      pick(objects).classList.add("hint-shimmer");
+      bumpTrait("curiosity", 0.5);
+    }
+
+    if (idle >= 15 && !state.nudgeFired[2]) {
+      state.nudgeFired[2] = true;
+      setMonsterState("curious");
+      const m = getPos(monster);
+      const towardX = clamp(state.pointer.x * 100, 10, 85);
+      setPos(monster, m.left + (towardX - m.left) * 0.35, m.top - 2);
+      bumpTrait("avoidance", 1);
+      updateAtmosphere();
+    }
+
+    if (idle >= 22 && !state.nudgeFired[3]) {
+      state.nudgeFired[3] = true;
+      if (!wantsCapture) {
+        if (isSettledForPhoto()) showFleetingHint("Settled — take a picture.");
+        else showFleetingHint("Soothe it before the camera.");
+      } else showFleetingHint("It notices you.");
+      bumpTrait("curiosity", 1);
+    }
+
+    if (idle >= 30 && !state.nudgeFired[4]) {
+      state.nudgeFired[4] = true;
+      const obj = pick(objects);
+      const m = getPos(monster);
+      if (state.calm < 55) {
+        setMonsterState("exploring");
+        setPos(obj, m.left + rand(-6, 6), m.top + rand(4, 10));
+        adjustCalm(-2);
+      }
+      bumpTrait("avoidance", 1);
+      bumpTrait("curiosity", 1);
+      monster.classList.remove("hint-pulse");
+      objects.forEach((o) => o.classList.remove("hint-shimmer"));
+      if (!wantsCapture) {
+        cameraBtn.classList.add("visible");
+        updateCalmUI();
+        showFloatNote(
+          isSettledForPhoto()
+            ? "Temper is soft enough — photograph the room you wish were true."
+            : "Still restless. Soft pets, gifts, waiting, gentle tidying, or space may settle it.",
+          5200
+        );
+      }
+      updateAtmosphere();
+      updateTraces();
+      updateJournal();
+    }
+  }
+
+  let drag = null;
+
+  function endDrag(e) {
+    if (!drag) return;
+    if (e && e.pointerId != null && drag.pointerId != null && e.pointerId !== drag.pointerId) return;
+
+    const active = drag;
+    drag = null; // clear first so a thrown reward never leaves us stuck
+
+    const { el, kind, moved, startedAt, pointerId } = active;
+    try {
+      if (pointerId != null && el?.hasPointerCapture?.(pointerId)) {
+        el.releasePointerCapture(pointerId);
+      }
+    } catch (_) { /* already released */ }
+
+    el?.classList.remove("dragging");
+
+    try {
+      if (kind === "monster") {
+        if (!moved && now() - startedAt < 400) {
+          state.petStreak += 1;
+          state.pets += 1;
+          bumpTrait("gentleness", 2);
+          const m = getPos(monster);
+          spawnFx(m.left + 4, m.top, "heart");
+          if (state.pets % 3 === 0) flashRoom("warm");
+
+          const tPet = now();
+          state.petPace = (state.petPace || []).filter((ts) => tPet - ts < 2200);
+          state.petPace.push(tPet);
+          if (state.petPace.length >= 4) {
+            adjustCalm(-10);
+            bumpTrait("control", 1);
+            setMonsterState("resistant");
+            showFleetingHint("Too many pets — overstimulated.");
+            state.petStreak = 0;
+          } else {
+            adjustCalm(8, "softPet");
+          }
+
+          recordAction("pet");
+
+          if (state.petStreak >= 4 && Math.random() < 0.55) {
+            setMonsterState("shy");
+            setPos(monster, m.left + rand(-12, -6), m.top + rand(-4, 4));
+            spawnFx(m.left, m.top, "ripple");
+            state.petStreak = 0;
+            adjustCalm(-3);
+          } else if (state.calm >= 40) {
+            setMonsterState("happy");
+            setTimeout(() => {
+              if (state.monsterState === "happy" && state.calm < 70) chooseStateFromTraits();
+            }, 900);
+          }
+        } else if (moved) {
+          state.drags += 1;
+          bumpTrait("control", 2);
+          const m = getPos(monster);
+          spawnFx(m.left + 3, m.top + 2, "ripple");
+          if (state.drags % 4 === 0) flashRoom("cool");
+          adjustCalm(-7);
+          recordAction("dragMonster");
+
+          if (traits.control > 18 || state.calm < 50) {
+            setMonsterState("resistant");
+            setPos(monster, m.left + rand(-14, 14), m.top + rand(-8, 8));
+            showFleetingHint("It does not like being hauled.");
+          } else if (traits.gentleness > traits.control) {
+            setMonsterState("curious");
+          }
+        }
+      }
+
+      if (kind === "object" && moved) {
+        state.drags += 1;
+        bumpTrait("control", 1);
+        const p = getPos(el);
+        spawnFx(p.left + 2, p.top, "spark");
+
+        const nearSlot = ORDERED_SLOTS.some((s) => Math.hypot(p.left - s.left, p.top - s.top) < 7);
+        if (nearSlot) {
+          state.organizeCount += 1;
+          if (state.organizeCount % 2 === 0) flashRoom("cool");
+          adjustCalm(4, "order");
+        } else {
+          adjustCalm(1.2, "order");
+        }
+
+        recordAction("dragObject");
+        tryGive(el);
+        updateRoomMood();
+
+        if (state.organizeCount >= 3 && alignmentScore() >= 2 && Math.random() < 0.4) {
+          setTimeout(() => {
+            const victim = pick(objects);
+            const vp = getPos(victim);
+            setPos(victim, vp.left + rand(-12, 12), vp.top + rand(-8, 10));
+            setMonsterState("exploring");
+            spawnFx(vp.left, vp.top, "spark");
+            updateRoomMood();
+          }, 1200);
+        }
+      }
+    } catch (err) {
+      console.warn("drag end handler", err);
+    }
+  }
+
+  function onPointerDown(e, el, kind) {
+    if (!state.interactive || state.journalOpen || !leavePanel.hidden || !photoPanel.hidden) return;
+    if (drag) endDrag(e);
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      el.setPointerCapture?.(e.pointerId);
+    } catch (_) { /* ignore */ }
+    const pct = clientToPct(e.clientX, e.clientY);
+    const pos = getPos(el);
+    drag = {
+      el,
+      kind,
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      offsetX: pct.x - pos.left,
+      offsetY: pct.y - pos.top,
+      moved: false,
+      startedAt: now(),
+    };
+    el.classList.add("dragging");
+  }
+
+  function onPointerMove(e) {
+    const r = getRoomRect();
+    state.pointer = {
+      x: clamp((e.clientX - r.left) / r.width, 0, 1),
+      y: clamp((e.clientY - r.top) / r.height, 0, 1),
+    };
+
+    if (!drag || (e.pointerId != null && e.pointerId !== drag.pointerId)) {
+      if (!drag && state.interactive && (state.monsterState === "curious" || state.monsterState === "happy")) {
+        facePointer();
+      }
+      return;
+    }
+
+    const dist = Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY);
+    if (dist > 6) drag.moved = true;
+
+    if (drag.moved) {
+      const pct = clientToPct(e.clientX, e.clientY);
+      setPos(drag.el, pct.x - drag.offsetX, pct.y - drag.offsetY);
+    }
+  }
+
+  function acceptChance() {
+    const base = 0.45 + traits.gentleness * 0.005 - traits.control * 0.003;
+    return clamp(base + rand(-0.1, 0.1), 0.15, 0.92);
+  }
+
+  function tryGive(obj) {
+    const m = getPos(monster);
+    const o = getPos(obj);
+    if (distance(m, o) > 12) return false;
+
+    if (Math.random() < acceptChance()) {
+      bumpTrait("gentleness", 1);
+      bumpTrait("curiosity", 1);
+      state.giftsAccepted += 1;
+      state.gives += 1;
+      state.attachedGifts.add(obj.id);
+      obj.classList.add("gifted");
+      setMonsterState("happy");
+      setPos(obj, m.left + rand(-4, 8), m.top + rand(6, 12));
+      spawnFx(m.left + 3, m.top, "heart");
+      spawnFx(m.left + 8, m.top + 2, "spark");
+      flashRoom("warm");
+      adjustCalm(11, "gift");
+      recordAction("give");
+      return true;
+    }
+
+    setMonsterState("resistant");
+    setPos(obj, o.left + rand(-10, 10), o.top + rand(-8, 8));
+    spawnFx(o.left + 2, o.top, "push");
+    bumpTrait("control", 0.5);
+    adjustCalm(-4);
+    recordAction("giveReject");
+    setTimeout(() => {
+      if (state.monsterState === "resistant") setMonsterState("shy");
+    }, 500);
+    return true;
+  }
+
+  function alignmentScore() {
+    let score = 0;
+    objects.forEach((obj, i) => {
+      const p = getPos(obj);
+      const slot = ORDERED_SLOTS[i];
+      if (Math.hypot(p.left - slot.left, p.top - slot.top) < 8) score += 1;
+    });
+    return score;
+  }
+
+  function scatterDistance() {
+    return objects.reduce((acc, obj, i) => {
+      const p = getPos(obj);
+      const slot = ORDERED_SLOTS[i];
+      return acc + Math.hypot(p.left - slot.left, p.top - slot.top);
+    }, 0);
+  }
+
+  function updateRoomMood() {
+    updateAtmosphere();
+    updateTraces();
+    updateJournal();
+  }
+
+  monster.addEventListener("pointerdown", (e) => onPointerDown(e, monster, "monster"));
+  room.addEventListener("pointerdown", (e) => {
+    const obj = e.target.closest(".obj");
+    if (obj) onPointerDown(e, obj, "object");
+  });
+  const onLostCapture = (e) => {
+    if (drag && e.pointerId === drag.pointerId) endDrag(e);
+  };
+  monster.addEventListener("lostpointercapture", onLostCapture);
+  room.addEventListener("lostpointercapture", onLostCapture);
+  window.addEventListener("pointermove", onPointerMove);
+  window.addEventListener("pointerup", endDrag);
+  window.addEventListener("pointercancel", endDrag);
+  document.addEventListener("pointerup", endDrag);
+  document.addEventListener("pointercancel", endDrag);
+
+  room.addEventListener("pointermove", () => {
+    if (!state.interactive) return;
+    const t = now();
+    if (t - state.lastInteractAt > 4000 && t - state.lastObserveBump > 5000) {
+      bumpTrait("curiosity", 1);
+      state.lastObserveBump = t;
+      if (Math.random() < 0.4) setMonsterState("curious");
+      updateAtmosphere();
+    }
+  });
+
+  function chooseStateFromTraits() {
+    const noise = () => rand(0, 8);
+    const calm = state.calm;
+    const weights = {
+      idle: 8 + noise(),
+      curious: 8 + traits.curiosity * 0.3 + noise(),
+      happy: 3 + traits.gentleness * 0.35 + noise(),
+      shy: 4 + traits.control * 0.15 + traits.avoidance * 0.2 + noise(),
+      resistant: 6 + traits.control * 0.35 + noise(),
+      sleepy: 3 + (traits.avoidance > 15 ? 3 : 0) + noise(),
+      exploring: 10 + traits.curiosity * 0.35 + noise(),
+    };
+
+    // Default temper: restless cookie prefers mischief
+    if (calm < 55) {
+      weights.resistant += 14 + (55 - calm) * 0.35;
+      weights.exploring += 16 + (55 - calm) * 0.4;
+      weights.curious += 8;
+      weights.happy *= 0.25;
+      weights.sleepy *= 0.3;
+      weights.idle *= 0.45;
+    } else if (calm >= 70) {
+      weights.happy += 14;
+      weights.sleepy += 16;
+      weights.idle += 12;
+      weights.resistant *= 0.15;
+      weights.exploring *= 0.2;
+      weights.curious *= 0.55;
+    } else {
+      weights.happy += 6;
+      weights.idle += 5;
+      weights.exploring *= 0.7;
+    }
+
+    const idleSec = (now() - state.lastInteractAt) / 1000;
+    if (idleSec > 12 && calm < 60) {
+      weights.curious += 6;
+      weights.exploring += 8;
+    }
+    if (idleSec > 8 && calm >= 65) {
+      weights.sleepy += 8;
+      weights.idle += 6;
+    }
+
+    if (traits.control > 20) {
+      weights.resistant += traits.control * 0.4;
+      weights.shy += traits.control * 0.25;
+      weights.happy *= 0.55;
+    }
+    if (traits.gentleness > 18) {
+      weights.happy += traits.gentleness * 0.22;
+    }
+    if (traits.control > 30 && traits.gentleness < traits.control) {
+      bumpTrait("avoidance", 0.12);
+    }
+
+    let best = "exploring";
+    let bestW = -1;
+    for (const [k, w] of Object.entries(weights)) {
+      if (w > bestW) {
+        bestW = w;
+        best = k;
+      }
+    }
+    setMonsterState(best);
+  }
+
+  let leaveAloneArmed = true;
+
+  function autonomyTick() {
+    if (!state.interactive) return;
+    if (drag) return;
+    maybeFreezeNudge();
+    maybeMysteryEvent();
+
+    const t = now();
+    if (t < state.autonomyCooldownUntil) return;
+
+    // Slow temper drift + patience / space soothing paths
+    const idleSec = (t - state.lastInteractAt) / 1000;
+    if (state.calm >= 70) {
+      adjustCalm(-0.35);
+    } else if (state.calm < 40) {
+      adjustCalm(-0.15);
+    }
+
+    if (idleSec >= 7 && idleSec <= 16 && t - state.lastPatienceAt > 9000 && state.totalActions >= 1) {
+      state.lastPatienceAt = t;
+      adjustCalm(5.5, "patience");
+      bumpTrait("avoidance", 0.3);
+      bumpTrait("curiosity", 0.2);
+      if (Math.random() < 0.4) showFleetingHint("Quiet helped.");
+    }
+
+    if (["shy", "resistant"].includes(state.monsterState) && idleSec >= 5 && t - state.lastSpaceCalmAt > 8000) {
+      state.lastSpaceCalmAt = t;
+      adjustCalm(6, "space");
+      bumpTrait("avoidance", 0.6);
+      if (Math.random() < 0.45) showFleetingHint("Not chasing helped.");
+    }
+
+    if (leaveAloneArmed && idleSec > 10) {
+      // keep original leave-alone trait bump, but don't over-punish calm seekers
+      if (state.calm < 50) bumpTrait("avoidance", 1);
+      leaveAloneArmed = false;
+      updateAtmosphere();
+      updateTraces();
+      updateJournal();
+      maybeReflect();
+      setTimeout(() => { leaveAloneArmed = true; }, 8000);
+    }
+
+    chooseStateFromTraits();
+    const mpos = getPos(monster);
+    const calm = state.calm;
+
+    // Settled: mostly still — good for photos
+    if (calm >= 70) {
+      if (state.monsterState === "curious" && Math.random() < 0.25) facePointer();
+      if (Math.random() < 0.12) {
+        setPos(monster, mpos.left + rand(-1.2, 1.2), mpos.top + rand(-0.8, 0.8));
+      }
+      updateRoomMood();
+      updateCalmUI();
+      state.autonomyCooldownUntil = t + rand(1400, 2400);
+      return;
+    }
+
+    if (state.monsterState === "curious") {
+      facePointer();
+      if (Math.random() < 0.45) {
+        moveToward(monster, state.pointer.x * 100 - 3, clamp(state.pointer.y * 100, 45, 80), calm < 40 ? 1.6 : 1.1);
+      }
+    }
+
+    if (state.monsterState === "shy") {
+      const awayX = mpos.left - (state.pointer.x * 100 - mpos.left) * 0.18;
+      setPos(monster, awayX, mpos.top);
+    }
+
+    if (state.monsterState === "exploring" || (calm < 50 && Math.random() < 0.4)) {
+      if (!state.targetExplore || Math.random() < 0.35) {
+        state.targetExplore = pick(objects);
+      }
+      const tp = getPos(state.targetExplore);
+      moveToward(monster, tp.left - 4, tp.top - 2, calm < 35 ? 1.8 : 1.35);
+      if (distance(getPos(monster), tp) < 10 && Math.random() < (calm < 45 ? 0.55 : 0.3)) {
+        setPos(state.targetExplore, tp.left + rand(-8, 8), tp.top + rand(-6, 6));
+        spawnFx(tp.left, tp.top, "spark");
+        state.mischiefCount += 1;
+        bumpTrait("curiosity", 0.4);
+        adjustCalm(-1.2);
+      }
+    }
+
+    if (state.monsterState === "happy" && traits.gentleness > 24 && calm >= 55) {
+      moveToward(monster, state.pointer.x * 100 - 3, clamp(state.pointer.y * 100, 50, 82), 0.55);
+    }
+
+    // Temper tantrum: scatter the room
+    if (calm < 48 && Math.random() < 0.32) {
+      const free = objects.filter((o) => !state.attachedGifts.has(o.id));
+      const victim = pick(free.length ? free : objects);
+      if (victim) {
+        const vp = getPos(victim);
+        setPos(victim, clamp(vp.left + rand(-16, 16), 8, 88), clamp(vp.top + rand(-12, 12), 42, 82));
+        spawnFx(vp.left, vp.top, "push");
+        state.mischiefCount += 1;
+      }
+    }
+
+    if (calm < 40 && Math.random() < 0.28) {
+      setPos(monster, rand(18, 78), rand(52, 80));
+      setMonsterState(pick(["resistant", "exploring", "curious"]));
+      adjustCalm(-0.8);
+    }
+
+    if (traits.control > 35 && calm < 60 && Math.random() < 0.22) {
+      setPos(monster, mpos.left + rand(-12, 12), mpos.top + rand(-8, 8));
+      setMonsterState("resistant");
+      adjustCalm(-2);
+    }
+
+    if (traits.avoidance > 20 && calm >= 50 && Math.random() < 0.25) {
+      const nestX = clamp(state.pointer.x * 100 + rand(-8, 8), 15, 80);
+      moveToward(monster, nestX, 72, 1.0);
+      nestPile.style.left = `${nestX}%`;
+      nestPile.style.top = `78%`;
+      room.classList.add("has-nest");
+    }
+
+    updateRoomMood();
+    updateCalmUI();
+    state.autonomyCooldownUntil = t + rand(1100, 2000);
+  }
+
+  setPos(monster, 61, 64);
+  monster.style.transform = "rotate(8deg)";
+  setTimeout(() => { monster.style.transform = ""; }, 5000);
+
+  doorBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (!state.interactive) return;
+    openLeaveDialog();
+  });
+  leaveCancel.addEventListener("click", (e) => { e.stopPropagation(); closeLeaveDialog(); });
+  leaveConfirm.addEventListener("click", (e) => { e.stopPropagation(); resetJourney(); });
+  leavePanel.addEventListener("click", (e) => { if (e.target === leavePanel) closeLeaveDialog(); });
+
+  cameraBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (!state.interactive || cameraBtn.disabled) return;
+    openPhoto();
+  });
+  photoClose.addEventListener("click", (e) => { e.stopPropagation(); closePhoto(); });
+  photoDownload.addEventListener("click", (e) => { e.stopPropagation(); downloadPhoto(); });
+  if (photoRegen) {
+    photoRegen.addEventListener("click", (e) => {
+      e.stopPropagation();
+      regenerateFeltPhoto();
+    });
+  }
+  if (photoZoom) {
+    photoZoom.addEventListener("click", (e) => {
+      e.stopPropagation();
+      togglePhotoZoom();
+    });
+  }
+  if (photoAi) {
+    photoAi.addEventListener("click", (e) => {
+      e.stopPropagation();
+      makeRealisticFeltPhoto();
+    });
+  }
+  photoPanel.addEventListener("click", (e) => { if (e.target === photoPanel) closePhoto(); });
+
+  journalBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (state.journalOpen) closeJournal();
+    else openJournal();
+  });
+  journalClose.addEventListener("click", (e) => {
+    e.stopPropagation();
+    closeJournal();
+  });
+  journalPanel.addEventListener("click", (e) => {
+    if (e.target === journalPanel) closeJournal();
+  });
+  summaryBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    openSummaryReport(false);
+  });
+  summaryAiBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    openSummaryReport(true);
+  });
+  reportClose.addEventListener("click", (e) => {
+    e.stopPropagation();
+    closeSummaryReport();
+  });
+  reportPanel.addEventListener("click", (e) => {
+    if (e.target === reportPanel) closeSummaryReport();
+  });
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      if (!photoPanel.hidden) closePhoto();
+      else if (!leavePanel.hidden) closeLeaveDialog();
+      else if (!reportPanel.hidden) closeSummaryReport();
+      else if (state.journalOpen) closeJournal();
+    }
+  });
+
+  runIntro();
+  setInterval(autonomyTick, 500);
+
+  setInterval(() => {
+    if (!room.classList.contains("has-nest")) return;
+    const m = getPos(monster);
+    nestPile.style.left = `${m.left - 2}%`;
+    nestPile.style.top = `${m.top + 7}%`;
+  }, 800);
+})();
+  </script>
+</body>
+</html>

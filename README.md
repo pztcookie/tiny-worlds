@@ -14,6 +14,7 @@ key, no backend. Open a folder, serve it, play it.
 | Game | Lens | Play |
 |---|---|---|
 | **[Moonlit Sandwich Cafe](https://pztcookie.github.io/tiny-worlds/games/moonlit-sandwich-cafe/)** | Self-authorship | Stack a sandwich in a cafe where day and night share one window |
+| **[The Little Monster in the Room](https://pztcookie.github.io/tiny-worlds/games/little-monster-room/)** | Want & undercurrent | Soothe a temperamental cookie, then frame your ideal room |
 
 ## Playing locally while you build
 
