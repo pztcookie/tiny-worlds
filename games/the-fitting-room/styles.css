@@ -330,9 +330,12 @@ button {
     border-color 0.3s ease;
 }
 
+/* Top right, clear of the rail — the way out is a sign by the door, not a garment. */
 #finish {
   position: absolute;
-  inset: auto 22px 20px auto;
+  inset: 14px 18px auto auto;
+  padding: 7px 15px;
+  font-size: 13px;
   opacity: 0;
   animation: fade-in 0.7s ease forwards;
 }

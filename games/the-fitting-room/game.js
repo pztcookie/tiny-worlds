@@ -661,12 +661,15 @@ function drawCard() {
   g.fillRect(0, 0, W, H);
 
   // The image is either the room you found, or the clothes you kept going back to.
-  g.fillStyle = "#2a2333";
-  g.fillRect(40, 36, W - 80, 300);
-
+  // The backing only spans what is actually pictured, so a square reflection is framed
+  // rather than sitting in a letterbox.
   if (Trace.state.secretFound) {
+    g.fillStyle = "#2a2333";
+    g.fillRect(146, 32, 308, 308);
     paste(g, "room-furnished", 150, 36, 300, 300);
   } else {
+    g.fillStyle = "#2a2333";
+    g.fillRect(40, 36, W - 80, 300);
     const top = Object.entries(wornCount)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
