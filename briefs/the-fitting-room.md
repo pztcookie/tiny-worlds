@@ -109,4 +109,26 @@ is on it. A game about things not fitting must not withhold its ending until som
 
 ## What was learned
 
-*Filled in after the build, with what actually worked at the desk.*
+- **Finding the secret early exposed an empty payoff.** The furnished cubicle is furnished out of
+  the rooms you lingered in, so discovering it in the first minute produced a bare room — a worse
+  reflection than the ordinary ones it replaces. It now falls back to the rooms you merely
+  *visited*, and has furniture of its own (a rug, a lamp, something framed) so it reads as
+  inhabited regardless of when you get there.
+- **Wordless cues cannot live in the DOM.** The rail repaints on every action, so the warm glow on
+  a removed garment and the double hanger drifting forward were both wiped within one click of
+  appearing. Cues have to be state the repaint re-applies, not classes added once.
+- **Order mattering is free content.** One gesture — drag a second garment on — yielded four
+  outcomes because old-over-new and new-over-old are different sentences. Cheapest richness in
+  the build.
+- **The near-miss is the hint.** New over new returns a double exposure rather than nothing, and
+  that single response does the work a tooltip would: it proves layering is a thing and says the
+  problem is which layer.
+- **A late reflection is worth more than a fast one.** Delaying every mirror update by roughly
+  three quarters of a second cost nothing and made the one in-sync reflection — the secret — land
+  as a change in the world rather than a message.
+- **The product test found the gap the design didn't.** Nothing signposted that a garment could
+  come *off*, and two layers is the ceiling, so a layered player could sit there stuck. That is
+  now its own rung on the hint ladder.
+- **A quick player forgoes the furniture, and that reads as intentional.** Dwell is only recorded
+  when the mirror actually settles, so changing faster than the reflection means no rooms leak
+  into the cubicle. The Quick Changer trait names the behaviour instead of the game correcting it.

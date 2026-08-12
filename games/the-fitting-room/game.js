@@ -430,6 +430,8 @@ const dwell = {};
 const seen = new Set();
 const refused = {};
 const wornCount = {};
+const warmed = new Set(); // old garments that have been worn and stay warm
+let nudging = false; // the circling detector has asked the rail to draw attention
 
 function renderMirror() {
   const canvas = document.getElementById("mirror");
@@ -516,14 +518,16 @@ function take(id, { fromMischief = false } = {}) {
   worn.push(id);
   wornCount[id] = (wornCount[id] ?? 0) + 1;
   Trace.wore(id);
+
+  const layered = worn.length === 2;
+  if (layered) {
+    Trace.state.layerAttempts += 1;
+    nudging = false; // they found it on their own; stop pointing
+  }
   paintRail();
 
-  if (worn.length === 2) {
-    Trace.state.layerAttempts += 1;
-    readPairing();
-  } else {
-    showMirror({ mode: "single", a: roomFor(id) });
-  }
+  if (layered) readPairing();
+  else showMirror({ mode: "single", a: roomFor(id) });
 
   renderCubicle();
   settleRoom();
@@ -551,6 +555,7 @@ function readPairing() {
   if (inner.era === "old" && outer.era === "new") {
     if (!Trace.state.secretFound) {
       Trace.state.secretFound = true;
+      Trace.save();
       Hints.retire("layer");
       Hints.retire("secret");
       document.getElementById("quest").textContent = CONFIG.settled;
@@ -594,8 +599,8 @@ function hangBack() {
     G.light = mix(G.light, drift, 0.25);
   }
 
+  if (G.era === "old") warmed.add(id);
   paintRail();
-  if (G.era === "old") document.querySelector(`.garment[data-id="${id}"]`)?.classList.add("warm");
 
   if (worn.length === 1) showMirror({ mode: "single", a: roomFor(worn[0]) });
   else showMirror({ mode: "empty" });
@@ -620,7 +625,8 @@ function circling() {
   if (Trace.state.secretFound || Trace.state.layerAttempts > 0) return;
   if (Trace.state.garmentsWorn < 4) return;
 
-  document.querySelectorAll(".garment.paired, .garment.pair-lead").forEach((el) => el.classList.add("forward"));
+  nudging = true;
+  paintRail();
   Hints.offer();
 }
 
@@ -676,6 +682,9 @@ function paintRail() {
     // The second hanger is holding two.
     if (i === 0) btn.classList.add("pair-lead");
     if (i === 1) btn.classList.add("paired");
+    // Cues survive the rail being repainted, because they live in state, not the DOM.
+    if (warmed.has(id) && !worn.includes(id)) btn.classList.add("warm");
+    if (nudging && i < 2) btn.classList.add("forward");
     btn.dataset.id = id;
     btn.dataset.era = G.era;
     btn.dataset.worn = worn.includes(id);
@@ -781,6 +790,15 @@ const Hints = {
         id: "layer",
         target: ".garment.paired",
         lines: ["…", "the hanger is holding two", "one of these goes underneath."],
+      });
+    }
+
+    // Nothing else signposts that the outer layer comes off, and two is the ceiling.
+    if (worn.length === 2) {
+      out.push({
+        id: "undress",
+        target: "#body",
+        lines: ["…", "the outer one is only resting there", "take the top one off — click yourself."],
       });
     }
 
