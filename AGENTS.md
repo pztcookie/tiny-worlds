@@ -28,6 +28,9 @@ index.html                the arcade — lists every game in games/
   fully playable and complete with the network off. Every generative call needs a local
   fallback, and the key — if any — is read from `localStorage`, never committed.
 - **State lives in `localStorage`,** namespaced `tiny-worlds:<slug>:*`. No backend, no accounts.
+- **All paths are relative and all network calls are `https://`.** Games are published by
+  GitHub Pages from a subfolder, so a leading slash resolves to the wrong place and an `http://`
+  call is blocked as mixed content — both work on localhost and fail only once shared.
 - **Assets stay small.** Prefer generated canvas art and CSS over large files. A megabyte per
   image is the ceiling, with source sheets that get cut into sprites as the one exception.
   No video.

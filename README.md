@@ -4,18 +4,28 @@ A workshop for small browser games. Each one is a tiny interactive world rather 
 functional website: you enter it, you want something, you experiment, you find out how it
 works, you leave traces, the world changes, and you take something away.
 
+**[Play them here →](https://pztcookie.github.io/tiny-worlds/)**
+
 Every game here is vanilla HTML, CSS and JavaScript. No build step, no dependencies, no API
 key, no backend. Open a folder, serve it, play it.
-
-```bash
-python3 -m http.server 8765   # then open http://localhost:8765
-```
 
 ## The games
 
 | Game | Lens | Play |
 |---|---|---|
-| [Moonlit Sandwich Cafe](games/moonlit-sandwich-cafe/) | Self-authorship | Stack a sandwich in a cafe where day and night share one window |
+| **[Moonlit Sandwich Cafe](https://pztcookie.github.io/tiny-worlds/games/moonlit-sandwich-cafe/)** | Self-authorship | Stack a sandwich in a cafe where day and night share one window |
+
+## Playing locally while you build
+
+Serve the repo root and open the arcade, or serve a single game folder on its own — every game
+is self-contained, so both work:
+
+```bash
+python3 -m http.server 8765   # then open http://localhost:8765
+```
+
+`localhost` is only your own machine. To share a game with someone else, push and let GitHub
+Pages serve it — see **Publishing** below.
 
 ## How a game gets made
 
@@ -53,6 +63,20 @@ You can also scaffold by hand:
 ```bash
 ./scripts/new-game.sh late-night-laundromat "Late Night Laundromat"
 ```
+
+## Publishing
+
+The repo is served straight from `main` by GitHub Pages, with Source set to *Deploy from a
+branch*, branch `main`, folder `/ (root)`. There is no build and no deploy step: pushing is
+publishing, and a new game is live a minute later at
+
+```
+https://pztcookie.github.io/tiny-worlds/games/<slug>/
+```
+
+Because games are served from a subfolder, **all paths inside a game must be relative**
+(`assets/thing.png`, never `/assets/thing.png`), and any network call must be `https://` or the
+browser will block it on the live site while it worked fine on localhost.
 
 ## Layout
 

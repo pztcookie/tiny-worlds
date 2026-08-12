@@ -5,14 +5,14 @@ different parts of you get to coexist on one plate.
 
 ## Play
 
+**[Play it in your browser →](https://pztcookie.github.io/tiny-worlds/games/moonlit-sandwich-cafe/)**
+
+No build step, no API key, no backend. To run it locally instead:
+
 ```bash
 cd games/moonlit-sandwich-cafe
-python3 -m http.server 8765
+python3 -m http.server 8765   # then open http://localhost:8765
 ```
-
-Open http://localhost:8765
-
-No build step, no API key, no backend.
 
 ## The loop
 
