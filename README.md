@@ -66,8 +66,9 @@ You can also scaffold by hand:
 
 ## Publishing
 
-The repo is served straight from `main` by GitHub Pages, with Source set to *Deploy from a
-branch*, branch `main`, folder `/ (root)`. There is no build and no deploy step: pushing is
+The repo is served straight from `main` by GitHub Pages — either with Source set to *Deploy
+from a branch* (branch `main`, folder `/ (root)`) or with the *Static HTML* workflow under
+Source *GitHub Actions*. Both serve the files as they are; nothing is compiled. Pushing is
 publishing, and a new game is live a minute later at
 
 ```
