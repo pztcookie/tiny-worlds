@@ -6,7 +6,7 @@ different parts of you get to coexist on one plate.
 ## Play
 
 ```bash
-cd moonlit-sandwich-cafe
+cd games/moonlit-sandwich-cafe
 python3 -m http.server 8765
 ```
 
@@ -96,9 +96,15 @@ localStorage.setItem("moonlit-flux-token", "YOUR_TOKEN");
 - Story art: `assets/01`–`10` (cafe, breads, curios, rare sandwich)
 - Ingredient sprites: cut from `assets/stackable_layers_visuals.png` into `assets/ingredients/`
 
-Re-cut the sprites at any time:
+Re-cut the sprites at any time. This is the one place in the repo that needs a dependency, and
+it is a build-time tool rather than something the game loads:
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install Pillow
 .venv/bin/python scripts/crop_ingredients.py
 ```
+
+## Brief
+
+Built from [`briefs/moonlit-sandwich-cafe.md`](../../briefs/moonlit-sandwich-cafe.md) under the
+house framework in [`framework/PRODUCT_FRAMEWORK.md`](../../framework/PRODUCT_FRAMEWORK.md).
