@@ -233,9 +233,11 @@ function handAt(x, y, now) {
 }
 
 function blow(dt, now) {
-  if (now - weather.moved > 260) weather.target *= 0.9;
-  weather.tempo += (weather.target - weather.tempo) * 0.07;
-  weather.warm += weather.tempo < 0.22 ? dt / 9000 : -dt / 2600;
+  // Everything here is a function of elapsed time rather than of frames, so a slow
+  // machine gets the same weather as a fast one.
+  if (now - weather.moved > 260) weather.target *= Math.exp(-dt / 340);
+  weather.tempo += (weather.target - weather.tempo) * (1 - Math.exp(-dt / 240));
+  weather.warm += weather.tempo < 0.22 ? dt / 14000 : -dt / 2600;
   weather.warm = Math.max(0, Math.min(1, weather.warm));
 
   if (game.pace && !game.over) {
@@ -270,6 +272,7 @@ function begin(name) {
     if (el.dataset.pace !== name) el.disabled = true;
   });
   document.getElementById("charms").classList.remove("flare");
+  beatSoon();
   Hints.wake();
 }
 
@@ -317,12 +320,210 @@ function putDown() {
   it.rot *= 0.35;
 }
 
+/* ---------- PERSONALITY — the pouch has opinions about what belongs together ----------
+ *
+ * Two rules, one machine: a miniature with a relative of its own colour beside it may be
+ * copied, and one with nobody beside it fades in steps and is pushed back out. The hand's
+ * speed decides how often the pouch gets to decide anything, and a slow hand brings a star
+ * down out of the sky that makes whatever it lands on exempt.
+ */
+
+const NEAR = 96; // close enough to count as a relative
+const BUNNY_NEAR = 122; // close enough to the bunny to be left alone
+const ROOM = 16; // what the pouch will hold before it stops making copies
+
+const gap = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+function relatives(it, inside) {
+  return inside.filter((other) => other !== it && other.family === it.family && gap(other, it) < NEAR);
+}
+
+/** MYSTERY — the bunny is the one thing that is never dissolved, and it lends that to
+ *  whatever is resting near it. Nothing says so. */
+function guarded(it) {
+  if (it.kind === "bunny" || it.starred) return true;
+  const b = bunny();
+  return !!b && b.inside && gap(b, it) < BUNNY_NEAR;
+}
+
+const told = new Set();
+function once(id, line) {
+  if (told.has(id)) return;
+  told.add(id);
+  whisper(line);
+}
+
+/* the marks the world leaves behind */
+
+const rings = [];
+const sparks = [];
+const falling = [];
+
+function ring(x, y, r) {
+  rings.push({ x, y, r, born: clock });
+}
+
+function sparkle(x, y, colour, n = 9) {
+  for (let i = 0; i < n; i += 1) {
+    const a = (i / n) * Math.PI * 2 + Math.random();
+    const speed = 0.02 + Math.random() * 0.05;
+    sparks.push({ x, y, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed - 0.01, born: clock, life: 620, colour });
+  }
+}
+
+/** Somewhere in the spill with elbow room, for whatever the pouch has pushed out. */
+function spillSpot(it) {
+  let best = null;
+  for (let i = 0; i < 26; i += 1) {
+    const x = 52 + Math.random() * 420;
+    const y = 302 + Math.random() * 262;
+    const near = items
+      .filter((other) => other !== it && !other.inside)
+      .reduce((min, other) => Math.min(min, Math.hypot(other.x - x, other.y - y)), 9999);
+    if (!best || near > best.near) best = { x, y, near };
+    if (near > 76) break;
+  }
+  return best;
+}
+
+function copyOf(it) {
+  const inside = packed();
+  if (inside.length >= ROOM) return false;
+  // Copies are relatives of each other, so without a ceiling per kind the first pair the
+  // pouch likes crowds everything else out. Four of anything is already a crowd.
+  if (inside.filter((other) => other.kind === it.kind).length >= 4) return false;
+  for (let i = 0; i < 14; i += 1) {
+    const a = Math.random() * Math.PI * 2;
+    const d = it.w * 0.6 + 12 + Math.random() * 28;
+    const x = it.x + Math.cos(a) * d;
+    const y = it.y + Math.sin(a) * d;
+    if (!Inside.holds(x, y)) continue;
+    const twin = makeItem(it.kind, x, y, it.rot + (Math.random() - 0.5) * 0.5, {
+      inside: true,
+      copy: true,
+      born: clock,
+    });
+    items.push(twin);
+    sparkle(x, y, "#fff4c9", 7);
+    once("copy", "two of those now");
+    return true;
+  }
+  return false;
+}
+
+/** Pushed back out. A copy is simply un-made, because it was never one of the twelve you
+ *  were handed; a real one lands in the spill, so going back for it is always possible and
+ *  nothing is ever lost for good. */
+function pushOut(it, { quietly = false } = {}) {
+  if (!quietly) ring(it.x, it.y, it.w * 0.6);
+  sparkle(it.x, it.y, "#e4d6ff", 11);
+
+  if (it.copy) {
+    items = items.filter((other) => other !== it);
+    return;
+  }
+
+  const spot = spillSpot(it);
+  it.inside = false;
+  it.fade = 0;
+  it.starred = false;
+  it.x = spot.x;
+  it.y = spot.y;
+  it.rot = (Math.random() - 0.5) * 0.7;
+}
+
+function beat() {
+  if (!game.pace || game.zipped || game.over) return;
+  const inside = packed().filter((it) => !it.held);
+  const mischief = game.pace.mischief;
+
+  // Anything exempt is not only spared but recovers, which is how the exemption shows.
+  for (const it of inside) if (guarded(it) && it.fade) it.fade = Math.max(0, it.fade - 0.5);
+
+  const loose = inside.filter((it) => !guarded(it));
+
+  // At most one copy and one eviction a beat, so the pouch reads as deciding rather than
+  // as churning. Shuffled, so it is not always the same miniature's turn.
+  const shuffled = loose.slice().sort(() => Math.random() - 0.5);
+
+  const twin = shuffled.find((it) => relatives(it, inside).length);
+  if (twin && Math.random() < (0.2 + 0.28 * weather.tempo) * mischief) copyOf(twin);
+
+  const lonely = shuffled.find((it) => !relatives(it, inside).length);
+  if (lonely && Math.random() < (0.44 + 0.3 * weather.tempo) * mischief) {
+    lonely.fade = Math.min(1, lonely.fade + 0.34);
+    lonely.faded = true;
+    if (lonely.fade >= 1) {
+      pushOut(lonely);
+      once("gone", "nothing was next to it");
+    }
+  }
+
+  // A fast hand and the pouch stops being careful about it.
+  if (weather.tempo > 0.72 && loose.length && Math.random() < 0.12 * mischief) {
+    const unlucky = loose[Math.floor(Math.random() * loose.length)];
+    pushOut(unlucky, { quietly: true });
+    once("spat", "that one came back out");
+  }
+
+  // A slow hand, a warm sky, and one of the stars comes down.
+  if (weather.tempo < 0.3 && weather.warm > 0.45 && falling.length < 2 && Math.random() < 0.16) {
+    const targets = inside.filter((it) => !it.starred && it.kind !== "bunny");
+    falling.push({
+      x: 120 + Math.random() * 700,
+      y: -24,
+      to: targets[Math.floor(Math.random() * targets.length)] ?? null,
+    });
+  }
+
+  Hints.notice();
+}
+
+let beatTimer = null;
+function beatSoon() {
+  clearTimeout(beatTimer);
+  const ms = game.pace.beat * (1 - 0.34 * weather.tempo);
+  beatTimer = setTimeout(() => {
+    beat();
+    if (!game.over && !game.zipped) beatSoon();
+  }, ms);
+}
+
+/** The marks and the weather advance on the frame clock, not on the beat. */
+function drift(dt) {
+  for (let i = rings.length - 1; i >= 0; i -= 1) if (clock - rings[i].born > 9000) rings.splice(i, 1);
+
+  for (let i = sparks.length - 1; i >= 0; i -= 1) {
+    const s = sparks[i];
+    s.x += s.vx * dt;
+    s.y += s.vy * dt;
+    s.vy += 0.00012 * dt;
+    if (clock - s.born > s.life) sparks.splice(i, 1);
+  }
+
+  for (let i = falling.length - 1; i >= 0; i -= 1) {
+    const f = falling[i];
+    const aim = f.to && f.to.inside ? f.to : null;
+    f.y += 0.19 * dt;
+    if (aim) f.x += (aim.x - f.x) * 0.035;
+    if (aim && f.y >= aim.y) {
+      aim.starred = true;
+      sparkle(aim.x, aim.y, "#fff2b8", 12);
+      once("star", "a star came down on it");
+      falling.splice(i, 1);
+    } else if (f.y > H + 30) {
+      falling.splice(i, 1);
+    }
+  }
+}
+
 /* ---------- the zip, which is the ending ---------- */
 
 function closeZip() {
   if (game.zipped || game.over) return;
   game.zipped = clock;
   putDown();
+  clearTimeout(beatTimer);
   document.getElementById("finish").hidden = true;
   setTimeout(finish, 1500);
 }
@@ -469,8 +670,61 @@ function drawZip() {
   g.restore();
 }
 
+/** A four-point sparkle, the one shape this world draws for itself. */
+function spark(x, y, r, colour, alpha = 1) {
+  g.save();
+  g.globalAlpha = alpha;
+  g.fillStyle = colour;
+  g.beginPath();
+  g.moveTo(x, y - r);
+  g.quadraticCurveTo(x, y, x + r, y);
+  g.quadraticCurveTo(x, y, x, y + r);
+  g.quadraticCurveTo(x, y, x - r, y);
+  g.quadraticCurveTo(x, y, x, y - r);
+  g.fill();
+  g.restore();
+}
+
+function drawMarks() {
+  for (const r of rings) {
+    const t = (clock - r.born) / 9000;
+    g.save();
+    g.globalAlpha = 0.4 * (1 - t);
+    g.strokeStyle = "#8f7ecb";
+    g.lineWidth = 1.4;
+    g.setLineDash([4, 5]);
+    g.beginPath();
+    g.arc(r.x, r.y, r.r * (1 + t * 0.12), 0, Math.PI * 2);
+    g.stroke();
+    g.restore();
+  }
+}
+
+function drawSparks() {
+  for (const s of sparks) {
+    const t = (clock - s.born) / s.life;
+    spark(s.x, s.y, 4.5 * (1 - t) + 1, s.colour, 1 - t);
+  }
+  for (const f of falling) {
+    g.save();
+    g.globalAlpha = 0.5;
+    g.strokeStyle = "#fff2b8";
+    g.lineWidth = 2;
+    g.beginPath();
+    g.moveTo(f.x, f.y - 26);
+    g.lineTo(f.x, f.y);
+    g.stroke();
+    g.restore();
+    spark(f.x, f.y, 7, "#fff6d0");
+  }
+}
+
 function drawItem(it) {
   let y = it.y;
+  let rot = it.rot;
+  let w = it.w;
+  let h = it.h;
+
   // Nothing moves until a charm is picked, so a miniature that is reached for early
   // hops in place instead. The charms flare at the same moment.
   if (it.nudge) {
@@ -478,15 +732,41 @@ function drawItem(it) {
     if (t >= 1) it.nudge = 0;
     else y -= Math.sin(t * Math.PI) * 9;
   }
-  const alpha = 1 - it.fade * 0.62;
+
+  // A copy arrives with a pop, so it is never mistaken for something that was always there.
+  if (it.born) {
+    const t = (clock - it.born) / 340;
+    if (t >= 1) it.born = 0;
+    else {
+      const pop = 1 + Math.sin(t * Math.PI) * 0.3;
+      w *= pop;
+      h *= pop;
+    }
+  }
+
+  // Going: dimmer, and less and less steady on its feet.
+  if (it.fade) rot += Math.sin(clock * 0.017 + it.id) * 0.075 * it.fade;
+
+  if (guarded(it) && it.inside && it.kind !== "bunny") {
+    const glow = g.createRadialGradient(it.x, it.y, 0, it.x, it.y, it.w * 0.95);
+    glow.addColorStop(0, it.starred ? "rgba(255, 240, 176, 0.5)" : "rgba(198, 170, 255, 0.42)");
+    glow.addColorStop(1, "rgba(255, 255, 255, 0)");
+    g.fillStyle = glow;
+    g.beginPath();
+    g.arc(it.x, it.y, it.w * 0.95, 0, Math.PI * 2);
+    g.fill();
+  }
+
   if (it.held) {
     g.save();
     g.shadowColor = "rgba(56, 71, 122, 0.35)";
     g.shadowBlur = 12;
     g.shadowOffsetY = 6;
   }
-  paste(KINDS[it.kind].art, it.x, y, it.w, it.h, it.rot, alpha);
+  paste(KINDS[it.kind].art, it.x, y, w, h, rot, 1 - it.fade * 0.62);
   if (it.held) g.restore();
+
+  if (it.starred) spark(it.x + it.w * 0.4, y - it.h * 0.38, 5, "#ffe89a");
 }
 
 function render() {
@@ -494,11 +774,13 @@ function render() {
   drawShadow();
   drawStrap();
 
+  drawMarks();
   for (const it of items) if (it.inside && !it.held) drawItem(it);
   paste("pouch", POUCH.x + POUCH.sway + POUCH.w / 2, POUCH.y + POUCH.h / 2, POUCH.w, POUCH.h);
   drawZip();
   for (const it of items) if (!it.inside && !it.held) drawItem(it);
   if (held) drawItem(held);
+  drawSparks();
 }
 
 let clock = 0;
@@ -511,11 +793,12 @@ function frame(now) {
 
   const sway = Math.sin(now * 0.0011) * 7 * (0.25 + weather.tempo);
   // Everything in the pouch swings with the pouch, so the vinyl is a place and not a hole.
-  const drift = sway - POUCH.sway;
+  const swing = sway - POUCH.sway;
   POUCH.sway = sway;
-  for (const it of items) if (it.inside && !it.held) it.x += drift;
+  for (const it of items) if (it.inside && !it.held) it.x += swing;
 
   blow(dt, now);
+  drift(dt);
   if (game.pace && !game.zipped && !game.over && progress() >= 1) closeZip();
 
   render();
@@ -630,6 +913,9 @@ const Hints = {
     }
     this.wake();
   },
+
+  /** Called every beat, so the world can watch what its own rules are doing. */
+  notice() {},
 
   retire(id) {
     this._retired.add(id);

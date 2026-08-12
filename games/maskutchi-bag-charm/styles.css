@@ -16,15 +16,17 @@
   --spark: #a9e8ff;
   --grape: #6f4fb0;
 
-  /* Two mixes, one for each end of the sky. Slow hands warm it, fast hands deepen it. */
+  /* Two mixes, one for each end of the sky. Slow hands warm it, fast hands deepen it.
+     The warm end is apricot rather than plain cream: mixing blue towards an off-white
+     passes through grey, and the sky went flat halfway. */
   --sky-hi: color-mix(
     in oklab,
-    color-mix(in oklab, #a6cbf2, #f8ecd4 calc(var(--warm) * 62%)),
+    color-mix(in oklab, #a6cbf2, #f7d6a2 calc(var(--warm) * 60%)),
     #5183c9 calc(var(--tempo) * 48%)
   );
   --sky-lo: color-mix(
     in oklab,
-    color-mix(in oklab, #dcedff, #fdf6e7 calc(var(--warm) * 62%)),
+    color-mix(in oklab, #dcedff, #fff0d0 calc(var(--warm) * 60%)),
     #8fbaea calc(var(--tempo) * 48%)
   );
 
