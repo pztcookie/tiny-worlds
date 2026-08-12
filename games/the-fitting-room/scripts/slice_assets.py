@@ -33,23 +33,26 @@ TOL = 0.012
 # the generated tiles do not share an aspect ratio, and squashing them to a common box
 # would distort the art. Garment heights are proportional to each garment's length in
 # the game's grid, so a coat still reads as longer than a child's pinafore.
-#   name, target height, whether the black field becomes transparent
+# The rooms are squared off, because the generated warm rooms came out landscape and the
+# cold ones portrait, and the mirror needs one shape. The bias says which edge to keep
+# when there is more to lose than a centre crop can spare.
+#   name, target height, key the black field, square crop bias
 PLAN = [
-    ("figure", 240, True),
-    ("cubicle", 420, False),
-    ("garment-pinafore", 180, True),
-    ("garment-shift", 171, True),
-    ("garment-party", 198, True),
-    ("garment-coat", 216, True),
-    ("garment-blazer", 135, True),
-    ("garment-slip", 189, True),
-    ("room-bedroom", 384, False),
-    ("room-kitchen", 384, False),
-    ("room-office", 384, False),
-    ("room-flat", 384, False),
-    ("room-hotel", 384, False),
-    ("room-wrapped", 384, False),
-    ("room-furnished", 384, False),
+    ("figure", 240, True, None),
+    ("cubicle", 420, False, None),
+    ("garment-pinafore", 180, True, None),
+    ("garment-shift", 171, True, None),
+    ("garment-party", 198, True, None),
+    ("garment-coat", 216, True, None),
+    ("garment-blazer", 135, True, None),
+    ("garment-slip", 189, True, None),
+    ("room-bedroom", 384, False, "center"),
+    ("room-kitchen", 384, False, "center"),
+    ("room-office", 384, False, "center"),
+    ("room-flat", 384, False, "top"),  # keep the bare bulb on its flex
+    ("room-hotel", 384, False, "center"),
+    ("room-wrapped", 384, False, "center"),
+    ("room-furnished", 384, False, "top"),  # keep the hanging lamp
 ]
 
 
@@ -134,6 +137,17 @@ def trim(mask, box):
     return (cols[0], rows[0], cols[-1] + 1, rows[-1] + 1)
 
 
+def squared(tile, bias):
+    """Crop to a square, taking from both edges unless one edge holds something."""
+    w, h = tile.size
+    side = min(w, h)
+    if w > h:
+        left = (w - side) // 2
+        return tile.crop((left, 0, left + side, h))
+    top = 0 if bias == "top" else (h - side) // 2
+    return tile.crop((0, top, w, top + side))
+
+
 def keyed(tile):
     """Black field to transparency, keeping soft edges from turning into fringe."""
     tile = tile.convert("RGBA")
@@ -173,9 +187,11 @@ def main():
     if len(found) != len(PLAN):
         sys.exit("tile count does not match the plan — run with --report and fix PLAN")
 
-    for box, (name, height, transparent) in zip(found, PLAN):
+    for box, (name, height, transparent, bias) in zip(found, PLAN):
         tile = sheet.crop(box)
         tile = keyed(tile) if transparent else tile.convert("RGB")
+        if bias:
+            tile = squared(tile, bias)
         width = max(1, round(tile.width * height / tile.height))
         # Nearest neighbour on the way down, so pixel edges stay edges.
         tile = tile.resize((width, height), Image.NEAREST)

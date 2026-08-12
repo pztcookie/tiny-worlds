@@ -31,9 +31,9 @@ Two garments is all that will fit, and **which one is outermost changes everythi
 | Pairing | What the mirror does |
 |---|---|
 | Old under new | *the secret* — see below |
-| Old over new | The old room, with one object in it that doesn't belong there |
+| Old over new | The old room, with a garment you haven't worn yet standing in it |
 | New over new | Two rooms at once, overlaid and misregistered, neither legible |
-| Old over old | One room with the furniture pushed against the walls, as if being moved out of |
+| Old over old | The room split down the middle and slid apart, everything shoved against the walls |
 
 New over new is the near-miss, and it is never silent — silence would read as *that isn't a
 thing you can do*, where a response reads as *not those two*.
@@ -44,11 +44,11 @@ thing you can do*, where a response reads as *not those two*.
 <summary>Spoiler</summary>
 
 Wear an **old garment underneath a new one**. The mirror stops showing somewhere else and shows
-*this* cubicle, furnished — with objects lifted from whichever rooms you lingered in longest, so
-it is assembled out of your own behaviour rather than authored. Two details carry it: every other
-reflection arrives a beat late, and this one is instant and in sync, the only time the mirror
-actually reflects you. And the line above the curtain softens from *get dressed for somewhere you
-haven't been yet* to *you can stay in here as long as you like*.
+*this* cubicle — the same pink curtain, the same proportions — except furnished and warmly lit,
+as though it had been a room all along. Two details carry it: every other reflection arrives a
+beat late, and this one is instant and in sync, the only time the mirror actually reflects you.
+And the line above the curtain softens from *get dressed for somewhere you haven't been yet* to
+*you can stay in here as long as you like*.
 
 There is no fanfare and no win screen. The ending never required it.
 
@@ -92,15 +92,32 @@ a chair pulled up to a mirror."* The card is downloadable, and kept in `localSto
 | Quest | "Get dressed for somewhere you haven't been yet," which no garment satisfies |
 | Play | Take a garment → wear it → read the mirror → keep it, layer it, or hang it back |
 | Personality | Late reflections, misremembered rooms, refusing sleeves, colours that drift, a hanger that moves itself |
-| Secret | Old under new: the cubicle, furnished out of where you lingered, reflected in sync |
+| Secret | Old under new: this cubicle, furnished, reflected in sync for the only time |
 | Trace | `garmentsWorn`, `longestLinger`, `oldNewRatio`, `layerAttempts`, `secretFound` |
-| Transformation | Wallpaper, light and one object from each lingered-in room leak into the cubicle; the curtain line softens |
+| Transformation | The light warms with the rooms you stayed in, and everything you take off stays on the bench |
 | Take-home | A card with the garments you returned to — or the furnished cubicle — and what you kept reaching for |
 
 ## Assets
 
-None. Every garment and every room is drawn in code as pixel rectangles from a palette, so
-there is nothing to load and the whole world restyles from a handful of colour values.
+90s-anime pastel pixel art, generated as one 1024px sheet and cut into fifteen pieces —
+`figure`, `cubicle`, six garments, six rooms and the furnished cubicle. Nothing is fetched at
+runtime and there is no API key; the game loads local PNGs and a missing file costs you that one
+picture rather than the room.
+
+Re-cut them any time. This needs a dependency, but it is a build-time tool rather than something
+the game loads:
+
+```bash
+python3 -m venv .venv && .venv/bin/pip install Pillow
+.venv/bin/python games/the-fitting-room/scripts/slice_assets.py --report   # check the tiles
+.venv/bin/python games/the-fitting-room/scripts/slice_assets.py            # write them
+```
+
+The script finds tiles by detecting the black gutters rather than by hardcoded coordinates, so a
+regenerated sheet with different spacing still cuts. It keys the black field to transparency for
+the figure and the garments, squares off the rooms — the generated warm rooms came out landscape
+and the cold ones portrait, and the mirror needs one shape — and scales garments by height in
+proportion to each one's length in the game, so a coat still reads as longer than a pinafore.
 
 ## Brief
 

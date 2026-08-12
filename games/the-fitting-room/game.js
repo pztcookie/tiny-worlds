@@ -2,6 +2,9 @@
  *
  * Everything above the ENGINE line is this world. Below it is the scaffolding every
  * game in this repo shares: traces, the shy idle hints, the reveal, the take-home card.
+ *
+ * The art is a set of static pixel-art PNGs in assets/, cut from one generated sheet by
+ * scripts/slice_assets.py. Nothing is fetched from the network.
  */
 
 const CONFIG = {
@@ -13,457 +16,242 @@ const CONFIG = {
 
 /* ============================== WORLD ============================== */
 
-const GRID = {
-  mirror: { w: 72, h: 96, s: 4 },
-  cubicle: { w: 120, h: 140, s: 3 },
-  sprite: { w: 22, h: 30, s: 2 },
-};
+/** Canvas sizes match the artwork one to one, so nothing is resampled twice. */
+const CUB = { w: 318, h: 420 };
+const MIR = 384;
 
-/** A garment is a silhouette, a palette, an era, and the room it used to fit. */
+/** Where the body stands in the cubicle, and where clothes sit on it.
+ *
+ * The garment art is drawn flat, so it is wider relative to its length than the same
+ * garment would be on a body. Width and height therefore scale differently: without
+ * that, a blazer sized to hang correctly is wide enough to fall off her shoulders. */
+const STANCE = { cx: 164, feet: 398, height: 272, shoulder: 194, scaleX: 0.6, scaleY: 0.78 };
+const BENCH = { x: 248, y: 296 };
+
 const GARMENTS = {
-  pinafore: {
-    label: "the pinafore",
-    era: "old",
-    room: "bedroom",
-    body: "#5d6f96",
-    shade: "#3f4d6d",
-    light: "#8798b8",
-    cut: { top: 7, len: 20, w0: 10, w1: 15, straps: true },
-  },
-  party: {
-    label: "the party dress",
-    era: "old",
-    room: "kitchen",
-    body: "#8a5d80",
-    shade: "#5f3d59",
-    light: "#b083a4",
-    cut: { top: 7, len: 22, w0: 9, w1: 20, ease: true },
-  },
-  blazer: {
-    label: "the blazer",
-    era: "old",
-    room: "office",
-    body: "#5b6660",
-    shade: "#3d4642",
-    light: "#828d86",
-    cut: { top: 6, len: 15, w0: 14, w1: 14, sleeve: 2, open: true },
-  },
-  shift: {
-    label: "the linen shift",
-    era: "new",
-    room: "flat",
-    body: "#c9bda6",
-    shade: "#9c9280",
-    light: "#e6dcc6",
-    cut: { top: 6, len: 19, w0: 12, w1: 14, sleeve: 1 },
-  },
-  coat: {
-    label: "the long coat",
-    era: "new",
-    room: "hotel",
-    body: "#b98f63",
-    shade: "#8a6846",
-    light: "#d8b189",
-    cut: { top: 5, len: 24, w0: 15, w1: 17, sleeve: 2, open: true },
-  },
-  slip: {
-    label: "the silk slip",
-    era: "new",
-    room: "wrapped",
-    body: "#aab2b8",
-    shade: "#7d858c",
-    light: "#d2d8dc",
-    cut: { top: 7, len: 21, w0: 8, w1: 11, straps: true },
-  },
+  pinafore: { label: "the pinafore", era: "old", room: "bedroom" },
+  party: { label: "the party dress", era: "old", room: "kitchen" },
+  blazer: { label: "the blazer", era: "old", room: "office" },
+  shift: { label: "the linen shift", era: "new", room: "flat" },
+  coat: { label: "the long coat", era: "new", room: "hotel" },
+  slip: { label: "the silk slip", era: "new", room: "wrapped" },
 };
 
 const RAIL = ["pinafore", "shift", "party", "blazer", "coat", "slip"];
 
 /** Old rooms are furnished and warm. New rooms are places nobody has lived in yet. */
 const ROOMS = {
-  bedroom: {
-    name: "a bedroom with a bed too small for you now",
-    wall: "#493653",
-    floor: "#523640",
-    light: "#ffd08a",
-    signature: { w: 16, h: 12, c: "#7a5a3c" },
-    objects: [
-      { x: 1, y: 14, w: 9, h: 48, c: "#3a2b44" },
-      { x: 2, y: 22, w: 7, h: 15, c: "#9c7fb5" },
-      { x: 2, y: 37, w: 7, h: 3, c: "#cbb3dd" }, // a hem under a hem
-      { x: 12, y: 44, w: 28, h: 18, c: "#8a5f56" },
-      { x: 12, y: 41, w: 28, h: 4, c: "#c9b39a" },
-      { x: 15, y: 37, w: 11, h: 5, c: "#e8dcc8" },
-      { x: 46, y: 16, w: 20, h: 22, c: "#2b3a52" },
-      { x: 55, y: 16, w: 2, h: 22, c: "#8a7f92" },
-      { x: 46, y: 26, w: 20, h: 2, c: "#8a7f92" },
-      { x: 43, y: 47, w: 18, h: 3, c: "#93714f" },
-      { x: 44, y: 50, w: 16, h: 12, c: "#7a5a3c" },
-    ],
+  bedroom: { name: "a bedroom with a bed too small for you now", era: "old", tint: "#e6b9c4" },
+  kitchen: { name: "someone's kitchen at two in the morning", era: "old", tint: "#c9b391" },
+  office: { name: "an office where you were early every day", era: "old", tint: "#a9c4c0" },
+  flat: { name: "a flat with the light still bare", era: "new", tint: "#a9bce0" },
+  hotel: { name: "a hotel room exactly like every hotel room", era: "new", tint: "#c4b8b0" },
+  wrapped: { name: "a room with the furniture still under sheets", era: "new", tint: "#b8c4c8" },
+};
+
+/* ---------- the art ---------- */
+
+const ART = {
+  images: {},
+  missing: new Set(),
+
+  keys() {
+    return ["figure", "cubicle", ...RAIL.map((id) => `garment-${id}`), ...Object.keys(ROOMS).map((id) => `room-${id}`), "room-furnished"];
   },
-  kitchen: {
-    name: "someone's kitchen at two in the morning",
-    wall: "#3d3a2e",
-    floor: "#55483a",
-    light: "#ffdca0",
-    signature: { w: 4, h: 10, c: "#a8887f" },
-    objects: [
-      { x: 0, y: 12, w: 72, h: 1, c: "#4a4438" },
-      { x: 8, y: 13, w: 3, h: 3, c: "#ffd98a" },
-      { x: 22, y: 13, w: 3, h: 3, c: "#ffd98a" },
-      { x: 36, y: 13, w: 3, h: 3, c: "#ffd98a" },
-      { x: 50, y: 13, w: 3, h: 3, c: "#ffd98a" },
-      { x: 64, y: 13, w: 3, h: 3, c: "#ffd98a" },
-      { x: 4, y: 46, w: 50, h: 4, c: "#b9a184" },
-      { x: 4, y: 50, w: 50, h: 12, c: "#6d5a44" },
-      { x: 10, y: 38, w: 4, h: 8, c: "#7fa88a" },
-      { x: 16, y: 36, w: 4, h: 10, c: "#a8887f" },
-      { x: 22, y: 39, w: 3, h: 7, c: "#8a9fb5" },
-      { x: 58, y: 52, w: 10, h: 3, c: "#8a7259" },
-      { x: 59, y: 55, w: 2, h: 7, c: "#6d5a44" },
-      { x: 65, y: 55, w: 2, h: 7, c: "#6d5a44" },
-    ],
+
+  load() {
+    return Promise.all(
+      this.keys().map(
+        (key) =>
+          new Promise((done) => {
+            const img = new Image();
+            img.onload = () => {
+              this.images[key] = img;
+              done();
+            };
+            img.onerror = () => {
+              this.missing.add(key);
+              done();
+            };
+            img.src = `assets/${key}.png`;
+          }),
+      ),
+    );
   },
-  office: {
-    name: "an office where you were early every day",
-    wall: "#33384a",
-    floor: "#3e4252",
-    light: "#cfe0ea",
-    signature: { w: 10, h: 14, c: "#2e3240" },
-    objects: [
-      { x: 14, y: 8, w: 44, h: 3, c: "#e8f2f7" },
-      { x: 8, y: 44, w: 44, h: 4, c: "#8a8272" },
-      { x: 10, y: 48, w: 40, h: 14, c: "#5c5648" },
-      { x: 20, y: 30, w: 20, h: 14, c: "#22252e" },
-      { x: 28, y: 44, w: 4, h: 2, c: "#4a4e58" },
-      { x: 54, y: 38, w: 10, h: 14, c: "#2e3240" },
-      { x: 52, y: 52, w: 14, h: 4, c: "#3a3f4e" },
-    ],
-  },
-  flat: {
-    name: "a flat with the light still bare",
-    wall: "#2a2c34",
-    floor: "#3a3a40",
-    light: "#b9c4cc",
-    signature: { w: 14, h: 12, c: "#7a6a52" },
-    objects: [
-      { x: 36, y: 6, w: 1, h: 12, c: "#4a4e56" },
-      { x: 34, y: 18, w: 5, h: 5, c: "#fff4d8" },
-      { x: 26, y: 50, w: 14, h: 12, c: "#7a6a52" },
-      { x: 26, y: 55, w: 14, h: 2, c: "#a89670" },
-    ],
-  },
-  hotel: {
-    name: "a hotel room exactly like every hotel room",
-    wall: "#2f2a33",
-    floor: "#453b3e",
-    light: "#d8c9b5",
-    signature: { w: 12, h: 8, c: "#e0d2b8" },
-    objects: [
-      { x: 22, y: 20, w: 16, h: 12, c: "#3d363c" },
-      { x: 24, y: 22, w: 12, h: 8, c: "#4a424a" },
-      { x: 12, y: 46, w: 34, h: 16, c: "#5a4e52" },
-      { x: 12, y: 43, w: 34, h: 4, c: "#cfc4bb" },
-      { x: 52, y: 52, w: 4, h: 10, c: "#6a5f5a" },
-      { x: 48, y: 44, w: 12, h: 8, c: "#e0d2b8" },
-    ],
-  },
-  wrapped: {
-    name: "a room with the furniture still under sheets",
-    wall: "#2c2f31",
-    floor: "#3c3f41",
-    light: "#c8d2d4",
-    signature: { w: 12, h: 10, c: "#b2b6b1" },
-    objects: [
-      { x: 8, y: 42, w: 22, h: 20, c: "#c6c9c4" },
-      { x: 8, y: 52, w: 22, h: 2, c: "#a8ada8" },
-      { x: 36, y: 48, w: 16, h: 14, c: "#bcc0bb" },
-      { x: 54, y: 52, w: 12, h: 10, c: "#b2b6b1" },
-    ],
+
+  get(key) {
+    return this.images[key];
   },
 };
 
-/* ---------- pixels ---------- */
-
-const penFor = (g, s) => (x, y, w, h, c) => {
-  g.fillStyle = c;
-  g.fillRect(Math.round(x * s), Math.round(y * s), Math.max(1, Math.round(w * s)), Math.max(1, Math.round(h * s)));
-};
-
-function mix(a, b, t) {
-  const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
-  const [r1, g1, b1] = hex(a);
-  const [r2, g2, b2] = hex(b);
-  const to = (n) => Math.round(n).toString(16).padStart(2, "0");
-  return `#${to(r1 + (r2 - r1) * t)}${to(g1 + (g2 - g1) * t)}${to(b1 + (b2 - b1) * t)}`;
+/** A missing file should cost you that one picture, not the whole room. */
+function placeholder(g, x, y, w, h, colour) {
+  g.fillStyle = colour;
+  g.fillRect(x, y, w, h);
 }
 
-/** A garment, drawn from its cut. Rows narrow or flare; the right side sits in shadow. */
-function drawGarment(g, id, ox, topY, s, { creases = true } = {}) {
-  const G = GARMENTS[id];
-  const c = G.cut;
-  const pen = penFor(g, s);
-  const centre = ox + GRID.sprite.w / 2;
-
-  if (c.straps) {
-    pen(centre - 4, topY - 4, 2, 4, G.shade);
-    pen(centre + 2, topY - 4, 2, 4, G.shade);
-  }
-
-  if (c.sleeve) {
-    const len = c.sleeve === 2 ? 12 : 5;
-    const x0 = centre - c.w0 / 2;
-    for (let r = 0; r < len; r++) {
-      pen(x0 - 3, topY + r, 3, 1, r < 2 ? G.body : G.shade);
-      pen(x0 + c.w0, topY + r, 3, 1, G.shade);
-    }
-  }
-
-  for (let r = 0; r < c.len; r++) {
-    const t = c.len === 1 ? 0 : r / (c.len - 1);
-    const w = Math.round(c.w0 + (c.w1 - c.w0) * (c.ease ? t * t : t));
-    const x = centre - w / 2;
-    const y = topY + r;
-    pen(x, y, w, 1, G.body);
-    pen(x + w - 2, y, 2, 1, G.shade);
-    pen(x, y, 1, 1, G.light);
-    if (c.open && r > 1) pen(centre - 1, y, 2, 1, G.shade);
-  }
-
-  if (G.era === "old" && creases) {
-    // Worn in. The creases are always in the same places.
-    pen(centre - 3, topY + Math.round(c.len * 0.4), 4, 1, G.shade);
-    pen(centre + 1, topY + Math.round(c.len * 0.62), 3, 1, G.shade);
-    pen(centre - 4, topY + Math.round(c.len * 0.8), 3, 1, G.shade);
-  }
-
-  if (G.era === "new") {
-    // The tag is still on it.
-    pen(centre + c.w0 / 2 - 1, topY + 1, 3, 4, "#f6f2e8");
-    pen(centre + c.w0 / 2, topY + 2, 1, 1, "#8d8798");
-  }
-}
-
-/** The body, and whatever is on it. Two layers at most, the inner one peeking. */
-function drawBody(g, ox, oy, s, layers) {
-  const pen = penFor(g, s);
-  const skin = "#c4a897";
-  const dim = "#a2887a";
-
-  pen(ox + 9, oy, 6, 6, skin);
-  pen(ox + 13, oy + 1, 2, 4, dim);
-  pen(ox + 11, oy + 6, 2, 2, dim);
-  pen(ox + 8, oy + 8, 8, 13, skin);
-  pen(ox + 6, oy + 9, 2, 11, dim);
-  pen(ox + 16, oy + 9, 2, 11, dim);
-  pen(ox + 9, oy + 21, 2, 15, skin);
-  pen(ox + 13, oy + 21, 2, 15, skin);
-  pen(ox + 8, oy + 36, 4, 2, dim);
-  pen(ox + 12, oy + 36, 4, 2, dim);
-
-  const gox = ox + (24 - GRID.sprite.w) / 2;
-  if (layers.length === 2) drawGarment(g, layers[0], gox, oy + 9, s);
-  if (layers.length) drawGarment(g, layers[layers.length - 1], gox, oy + 7, s);
-
-  // A hem under a hem. Whichever garment is longer, the one underneath still shows.
-  if (layers.length === 2) {
-    const inner = GARMENTS[layers[0]];
-    const outer = GARMENTS[layers[1]];
-    const hemY = oy + 7 + outer.cut.len;
-    const wide = Math.max(inner.cut.w1, 6);
-    const pen2 = penFor(g, s);
-    pen2(ox + 12 - wide / 2, hemY, wide, 3, inner.body);
-    pen2(ox + 12 - wide / 2, hemY + 2, wide, 1, inner.shade);
-  }
-}
-
-/** A room, seen through the mirror. */
-function drawRoom(g, id, ox, oy, s, opts = {}) {
-  const R = ROOMS[id];
-  const pen = penFor(g, s);
-  const { w, h } = GRID.mirror;
-
-  pen(ox, oy, w, 62, R.wall);
-  pen(ox, oy + 62, w, h - 62, R.floor);
-  pen(ox, oy + 61, w, 1, mix(R.wall, "#000000", 0.35));
-
-  for (const o of R.objects) {
-    const x = opts.pushToWalls ? (o.x < 36 ? Math.max(1, o.x - 13) : Math.min(w - o.w - 1, o.x + 13)) : o.x;
-    solid(pen, ox + x, oy + o.y, o.w, o.h, o.c);
-  }
-
-  if (opts.intruder) {
-    const o = opts.intruder;
-    solid(pen, ox + 30, oy + 62 - o.h, o.w, o.h, o.c);
-  }
-
-  daylight(g, ox, oy, w, h, s, R.light, R.era === "new" ? 0.07 : 0.14);
-}
-
-/** Objects need a lit top and a shadowed base or they sink into the floor. */
-function solid(pen, x, y, w, h, c) {
-  pen(x, y, w, h, c);
-  if (h > 2) {
-    pen(x, y, w, 1, mix(c, "#ffffff", 0.14));
-    pen(x, y + h - 1, w, 1, mix(c, "#000000", 0.34));
-  }
-}
-
-/** Light falls off. A hard-edged overlay reads as a horizon that isn't there. */
-function daylight(g, ox, oy, w, h, s, colour, strength) {
-  const grad = g.createLinearGradient(0, oy * s, 0, (oy + h) * s);
-  grad.addColorStop(0, colour);
-  grad.addColorStop(1, "transparent");
-  g.globalAlpha = strength;
-  g.fillStyle = grad;
-  g.fillRect(ox * s, oy * s, w * s, h * s);
-  g.globalAlpha = 1;
-}
-
-/** The secret: this cubicle, furnished out of the rooms you stayed in longest. */
-function drawFurnishedCubicle(g, ox, oy, s) {
-  const pen = penFor(g, s);
-  const { w, h } = GRID.mirror;
-  const warm = furnishings();
-
-  let wall = "#3a3340";
-  let floor = "#5c4340";
-  for (const id of warm) {
-    wall = mix(wall, ROOMS[id].wall, 0.38);
-    floor = mix(floor, ROOMS[id].floor, 0.3);
-  }
-
-  pen(ox, oy, w, 62, wall);
-  pen(ox, oy + 62, w, h - 62, floor);
-  pen(ox, oy + 61, w, 1, mix(wall, "#000000", 0.4));
-
-  // The cubicle turns out to have been a room all along.
-  pen(ox + 2, oy + 6, 7, 56, "#4a3f52"); // the curtain, from this side
-  pen(ox + 8, oy + 74, 56, 8, mix(floor, "#8a5a4e", 0.55)); // a rug, lying flat
-  pen(ox + 8, oy + 74, 56, 1, mix(floor, "#c08a72", 0.4));
-  solid(pen, ox + 20, oy + 14, 16, 12, "#6d5a44"); // something framed
-  pen(ox + 22, oy + 16, 12, 8, mix(wall, "#ffd08a", 0.3));
-  pen(ox + 63, oy + 8, 1, 12, "#6a5f5a"); // a lamp on a flex
-  solid(pen, ox + 57, oy + 20, 12, 7, "#e8d2a8");
-
-  // One object from each room you stayed in, standing on the floor as if it lives here.
-  let cx = 6;
-  for (const id of warm) {
-    const o = ROOMS[id].signature;
-    if (cx + o.w > w - 4) break;
-    solid(pen, ox + cx, oy + 62 - o.h, o.w, o.h, o.c);
-    cx += o.w + 4;
-  }
-
-  daylight(g, ox, oy, w, h, s, "#ffd08a", 0.22);
-}
-
-/** What the cubicle is furnished with: where you lingered, or failing that, where you went. */
-function furnishings() {
-  const lingered = lingeredRooms();
-  if (lingered.length) return lingered;
-  return [...seen].slice(-3);
+function paste(g, key, x, y, w, h, fallback = "#5b4763") {
+  const img = ART.get(key);
+  if (!img) return placeholder(g, x, y, w, h, fallback);
+  g.drawImage(img, x, y, w, h);
 }
 
 /* ---------- the cubicle you are standing in ---------- */
 
+let worn = [];
+const pile = []; // garments taken off, left on the bench
+const hue = {}; // degrees of colour drift per garment
+const refused = {};
+const wornCount = {};
+const warmed = new Set();
+let nudging = false;
+
+function garmentBox(id) {
+  const img = ART.get(`garment-${id}`);
+  const w = (img ? img.width : 100) * STANCE.scaleX;
+  const h = (img ? img.height : 180) * STANCE.scaleY;
+  return { w, h, x: STANCE.cx - w / 2, y: STANCE.shoulder };
+}
+
+function tinted(g, id, draw) {
+  const deg = hue[id] ?? 0;
+  if (deg && "filter" in g) {
+    g.filter = `hue-rotate(${deg}deg)`;
+    draw();
+    g.filter = "none";
+  } else {
+    draw();
+  }
+}
+
+function drawWorn(g) {
+  if (!worn.length) return;
+
+  const outer = worn[worn.length - 1];
+  const outerBox = garmentBox(outer);
+
+  // The one underneath sits a little lower, so it reads as a second layer.
+  if (worn.length === 2) {
+    const inner = worn[0];
+    const box = garmentBox(inner);
+    tinted(g, inner, () => paste(g, `garment-${inner}`, box.x, box.y + 5, box.w, box.h));
+  }
+
+  tinted(g, outer, () => paste(g, `garment-${outer}`, outerBox.x, outerBox.y, outerBox.w, outerBox.h));
+
+  // A hem under a hem: whichever is longer, the garment underneath still shows below.
+  if (worn.length === 2) {
+    const inner = worn[0];
+    const img = ART.get(`garment-${inner}`);
+    const box = garmentBox(inner);
+    const bottom = outerBox.y + outerBox.h;
+    if (img && bottom > box.y + box.h - 10) {
+      const strip = 16;
+      tinted(g, inner, () =>
+        g.drawImage(img, 0, img.height - strip, img.width, strip, box.x, bottom - 4, box.w, strip * STANCE.scaleY),
+      );
+    }
+  }
+}
+
+/** TRANSFORMATION — what you take off stays in the room with you. */
+function drawPile(g) {
+  pile.slice(-4).forEach((id, i) => {
+    const img = ART.get(`garment-${id}`);
+    if (!img) return;
+    const h = img.height * 0.3;
+    const w = img.width * 0.3;
+    tinted(g, id, () => g.drawImage(img, BENCH.x - w * 0.1 + i * 6, BENCH.y - i * 5, w, h));
+  });
+}
+
 function renderCubicle() {
   const canvas = document.getElementById("cubicle");
   const g = canvas.getContext("2d");
-  const s = GRID.cubicle.s;
-  const pen = penFor(g, s);
-  const { w, h } = GRID.cubicle;
   const warm = lingeredRooms();
 
-  let wall = "#322c3c";
-  let floor = "#3d3640";
-  for (const id of warm) {
-    wall = mix(wall, ROOMS[id].wall, 0.34);
-    floor = mix(floor, ROOMS[id].floor, 0.3);
+  g.clearRect(0, 0, CUB.w, CUB.h);
+  paste(g, "cubicle", 0, 0, CUB.w, CUB.h, "#4a3f52");
+  drawPile(g);
+
+  const fig = ART.get("figure");
+  const fw = fig ? fig.width * (STANCE.height / fig.height) : 96;
+  paste(g, "figure", STANCE.cx - fw / 2, STANCE.feet - STANCE.height, fw, STANCE.height, "#c4a897");
+  drawWorn(g);
+
+  // The rooms you stayed in warm the light in here, without moving anything into it.
+  if (warm.length) {
+    g.globalAlpha = Math.min(0.3, 0.1 * warm.length);
+    g.fillStyle = ROOMS[warm[0]].tint;
+    g.fillRect(0, 0, CUB.w, CUB.h);
+    g.globalAlpha = 1;
   }
-
-  g.clearRect(0, 0, canvas.width, canvas.height);
-  pen(0, 0, w, 116, wall);
-  pen(0, 116, w, h - 116, floor);
-  pen(0, 115, w, 1, mix(wall, "#000000", 0.4));
-
-  // Partition seams, so it reads as a cubicle rather than a room.
-  pen(30, 0, 1, 116, mix(wall, "#000000", 0.3));
-  pen(96, 0, 1, 116, mix(wall, "#000000", 0.3));
-
-  // The curtain, and its rail.
-  pen(0, 4, 28, 3, "#6b6472");
-  for (let x = 0; x < 28; x += 4) {
-    pen(x, 7, 3, 128, x % 8 === 0 ? "#4a3f52" : "#57495e");
-  }
-  pen(0, 7, 28, 2, "#3a3142");
-
-  // A hook, and the bench nobody sits on.
-  pen(72, 26, 5, 3, "#8d8798");
-  pen(74, 29, 2, 3, "#8d8798");
-  solid(pen, 84, 96, 32, 5, "#8a7259");
-  pen(86, 101, 3, 14, "#6d5a44");
-  pen(111, 101, 3, 14, "#6d5a44");
-
-  // What the rooms left behind, accumulating against the far wall.
-  let cx = 34;
-  for (const id of warm) {
-    const o = ROOMS[id].signature;
-    if (cx + o.w > 82) break;
-    solid(pen, cx, 116 - o.h, o.w, o.h, o.c);
-    cx += o.w + 4;
-  }
-
-  drawBody(g, 48, 76, s, worn);
-
-  // The fluorescent tube overhead cools everything until the rooms warm it.
-  daylight(g, 0, 0, w, h, s, "#dceaf2", Math.max(0.04, 0.16 - warm.length * 0.035));
 }
 
 /* ---------- the mirror, which is always a beat late ---------- */
 
-let worn = [];
 let mirror = { mode: "empty" };
 let mirrorTimer = null;
 let showing = { room: null, since: 0 };
 const dwell = {};
 const seen = new Set();
-const refused = {};
-const wornCount = {};
-const warmed = new Set(); // old garments that have been worn and stay warm
-let nudging = false; // the circling detector has asked the rail to draw attention
 
 function renderMirror() {
   const canvas = document.getElementById("mirror");
   const g = canvas.getContext("2d");
-  const s = GRID.mirror.s;
-  const { w, h } = GRID.mirror;
 
-  g.clearRect(0, 0, canvas.width, canvas.height);
+  g.clearRect(0, 0, MIR, MIR);
 
   if (mirror.mode === "empty") {
-    const pen = penFor(g, s);
-    pen(0, 0, w, h, "#211d29");
-    pen(0, 62, w, h - 62, "#282331");
-    pen(0, 61, w, 1, "#1a1721");
-    daylight(g, 0, 0, w, h, s, "#7fa8c0", 0.1);
+    const wash = g.createLinearGradient(0, 0, 0, MIR);
+    wash.addColorStop(0, "#4d4058");
+    wash.addColorStop(1, "#332b3c");
+    g.fillStyle = wash;
+    g.fillRect(0, 0, MIR, MIR);
+    // A diagonal sheen, so unused glass reads as glass and not as a hole.
+    const sheen = g.createLinearGradient(0, MIR, MIR, 0);
+    sheen.addColorStop(0.34, "transparent");
+    sheen.addColorStop(0.5, "rgba(255,246,234,0.09)");
+    sheen.addColorStop(0.66, "transparent");
+    g.fillStyle = sheen;
+    g.fillRect(0, 0, MIR, MIR);
     return;
   }
 
-  if (mirror.mode === "cubicle") return drawFurnishedCubicle(g, 0, 0, s);
+  if (mirror.mode === "cubicle") return paste(g, "room-furnished", 0, 0, MIR, MIR);
 
   if (mirror.mode === "double") {
-    drawRoom(g, mirror.a, 0, 0, s);
+    paste(g, `room-${mirror.a}`, 0, 0, MIR, MIR);
     g.globalAlpha = 0.55;
-    drawRoom(g, mirror.b, 5, -3, s);
+    paste(g, `room-${mirror.b}`, 26, -16, MIR, MIR);
     g.globalAlpha = 1;
     return;
   }
 
-  drawRoom(g, mirror.a, 0, 0, s, {
-    pushToWalls: mirror.mode === "displaced",
-    intruder: mirror.mode === "intruder" ? mirror.intruder : null,
-  });
+  if (mirror.mode === "displaced") {
+    const img = ART.get(`room-${mirror.a}`);
+    if (!img) return placeholder(g, 0, 0, MIR, MIR, "#43384c");
+    const shove = 30;
+    const half = img.width / 2;
+    // Stretch the left edge across the middle so the gap still has wall above floor,
+    // then slide both halves outward — everything ends up against the walls.
+    g.drawImage(img, 0, 0, 4, img.height, 0, 0, MIR, MIR);
+    g.drawImage(img, 0, 0, half, img.height, -shove, 0, MIR / 2, MIR);
+    g.drawImage(img, half, 0, half, img.height, MIR / 2 + shove, 0, MIR / 2, MIR);
+    return;
+  }
+
+  paste(g, `room-${mirror.a}`, 0, 0, MIR, MIR);
+
+  // One thing in the room that was never in it.
+  if (mirror.mode === "intruder" && mirror.intruder) {
+    const img = ART.get(`garment-${mirror.intruder}`);
+    if (img) {
+      const h = MIR * 0.34;
+      const w = img.width * (h / img.height);
+      g.drawImage(img, MIR * 0.62, MIR - h - 24, w, h);
+    }
+  }
 }
 
 /** Nothing in this mirror is prompt, except once. */
@@ -538,7 +326,7 @@ function take(id, { fromMischief = false } = {}) {
 function roomFor(id) {
   const G = GARMENTS[id];
   if (G.era === "old" && Math.random() < 0.22) {
-    const others = Object.keys(ROOMS).filter((r) => ROOMS[r].era !== "new" && r !== G.room);
+    const others = Object.keys(ROOMS).filter((r) => ROOMS[r].era === "old" && r !== G.room);
     const pick = others[Math.floor(Math.random() * others.length)];
     if (pick) {
       whisper("you remember it somewhere else");
@@ -567,10 +355,10 @@ function readPairing() {
   }
 
   if (inner.era === "new" && outer.era === "old") {
-    const unseen = Object.keys(ROOMS).filter((r) => !seen.has(r));
-    const from = unseen[Math.floor(Math.random() * unseen.length)] ?? "wrapped";
+    const unworn = RAIL.filter((id) => !wornCount[id]);
+    const strange = unworn[Math.floor(Math.random() * unworn.length)] ?? "slip";
     whisper("that wasn't in there before");
-    showMirror({ mode: "intruder", a: outer.room, intruder: ROOMS[from].signature });
+    showMirror({ mode: "intruder", a: outer.room, intruder: strange });
     return;
   }
 
@@ -584,7 +372,7 @@ function readPairing() {
   showMirror({ mode: "displaced", a: outer.room });
 }
 
-/** Take the outer layer off and hang it back — sometimes a different colour. */
+/** Take the outer layer off. It stays in the room, on the bench. */
 function hangBack() {
   if (!worn.length) return whisper("you're not wearing anything yet");
 
@@ -592,14 +380,9 @@ function hangBack() {
   const G = GARMENTS[id];
   Trace.act();
 
-  if (Math.random() < 0.26) {
-    const drift = ["#8a7fb5", "#7f9c8a", "#b58a7f", "#7f8fb5"][Math.floor(Math.random() * 4)];
-    G.body = mix(G.body, drift, 0.4);
-    G.shade = mix(G.shade, drift, 0.3);
-    G.light = mix(G.light, drift, 0.25);
-  }
-
+  if (Math.random() < 0.26) hue[id] = ((hue[id] ?? 0) + 20 + Math.random() * 50) % 360;
   if (G.era === "old") warmed.add(id);
+  pile.push(id);
   paintRail();
 
   if (worn.length === 1) showMirror({ mode: "single", a: roomFor(worn[0]) });
@@ -690,11 +473,11 @@ function paintRail() {
     btn.dataset.worn = worn.includes(id);
     btn.setAttribute("aria-label", G.label);
 
-    const canvas = document.createElement("canvas");
-    canvas.width = GRID.sprite.w * GRID.sprite.s;
-    canvas.height = GRID.sprite.h * GRID.sprite.s;
-    drawGarment(canvas.getContext("2d"), id, 0, G.cut.top, GRID.sprite.s);
-    btn.appendChild(canvas);
+    const img = document.createElement("img");
+    img.src = `assets/garment-${id}.png`;
+    img.alt = "";
+    if (hue[id]) img.style.filter = `hue-rotate(${hue[id]}deg)`;
+    btn.appendChild(img);
     rail.appendChild(btn);
   });
 }
@@ -872,46 +655,53 @@ function drawCard() {
   const { traits, room } = reflect();
 
   const wash = g.createLinearGradient(0, 0, 0, H);
-  wash.addColorStop(0, "#2b2438");
-  wash.addColorStop(1, "#14121b");
+  wash.addColorStop(0, "#5b4763");
+  wash.addColorStop(1, "#2f2738");
   g.fillStyle = wash;
   g.fillRect(0, 0, W, H);
 
   // The image is either the room you found, or the clothes you kept going back to.
-  g.fillStyle = "#1b1824";
+  g.fillStyle = "#2a2333";
   g.fillRect(40, 36, W - 80, 300);
 
   if (Trace.state.secretFound) {
-    drawFurnishedCubicle(g, 64, 14, 3);
+    paste(g, "room-furnished", 150, 36, 300, 300);
   } else {
     const top = Object.entries(wornCount)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
       .map(([id]) => id);
     const picks = top.length ? top : RAIL.slice(0, 3);
-    g.fillStyle = "#6b6472";
+    g.fillStyle = "#8a7a94";
     g.fillRect(56, 58, W - 112, 5);
-    picks.forEach((id, i) => drawGarment(g, id, 4 + i * 22, 8, 8));
+    picks.forEach((id, i) => {
+      const img = ART.get(`garment-${id}`);
+      const h = 250;
+      const w = img ? img.width * (h / img.height) : 120;
+      const slot = (W - 112) / picks.length;
+      paste(g, `garment-${id}`, 56 + slot * i + (slot - w) / 2, 62, w, h);
+    });
   }
 
   g.textAlign = "center";
-  g.fillStyle = "#f3ece2";
+  g.fillStyle = "#fff6ea";
   g.font = "500 26px ui-monospace, Menlo, monospace";
   g.fillText(CONFIG.title, W / 2, 390);
 
   g.font = "15px ui-monospace, Menlo, monospace";
   traits.forEach(([name, line], i) => {
-    g.fillStyle = "#ffd98a";
+    g.fillStyle = "#ffd9a8";
     g.fillText(name, W / 2, 442 + i * 52);
-    g.fillStyle = "#9c9384";
+    g.fillStyle = "#cbb6c8";
     g.fillText(line, W / 2, 462 + i * 52);
   });
 
-  g.fillStyle = "#f3ece2";
+  g.fillStyle = "#fff6ea";
   g.font = "italic 15px ui-monospace, Menlo, monospace";
-  wrap(g, `the room you kept reaching for looks like ${room}`, W / 2, 660, W - 90, 24);
+  // Sits below however many traits there were, rather than leaving a hole under one.
+  wrap(g, `the room you kept reaching for looks like ${room}`, W / 2, 500 + traits.length * 56, W - 90, 24);
 
-  g.fillStyle = "#5d5648";
+  g.fillStyle = "#8a7a94";
   g.font = "12px ui-monospace, Menlo, monospace";
   g.fillText(new Date().toLocaleDateString(), W / 2, H - 28);
 
@@ -950,16 +740,8 @@ function finish() {
 
 /* ---------- wiring ---------- */
 
-for (const id of Object.keys(ROOMS)) {
-  ROOMS[id].era = ["flat", "hotel", "wrapped"].includes(id) ? "new" : "old";
-}
-
 document.getElementById("quest").textContent = CONFIG.quest;
 document.title = CONFIG.title;
-
-paintRail();
-renderCubicle();
-renderMirror();
 
 document.getElementById("rail").addEventListener("click", (e) => {
   const el = e.target.closest(".garment");
@@ -983,4 +765,9 @@ document.getElementById("download").addEventListener("click", () => {
   a.click();
 });
 
-Hints.wake();
+paintRail();
+ART.load().then(() => {
+  renderCubicle();
+  renderMirror();
+  Hints.wake();
+});

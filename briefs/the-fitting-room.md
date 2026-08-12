@@ -35,9 +35,12 @@ stating it.*
 
 ## 5. References
 
-- **Image folder:** none supplied. Pixel art drawn in code, house style.
-- **What to take from it:** —
-- **Games / sites to feel like:** —
+- **Image folder:** `games/the-fitting-room/assets/`, cut from one generated 1024px sheet
+  (`source-sheet.png`) by `scripts/slice_assets.py`.
+- **What to take from it:** 90s anime pastel in pixel art, PC-98 game art register — cream, rose,
+  butter, mint, periwinkle and lilac, with warm plum outlines rather than black.
+- **Games / sites to feel like:** retro shoujo anime interiors; melancholy carried by late
+  afternoon light and empty floor rather than by desaturation.
 - **What NOT to imitate:** dressing-up games. No scores, no timers, no correct outfit, no
   approving audience.
 
@@ -64,10 +67,10 @@ stating it.*
 | Quest (visible goal) | Printed on the curtain: *"get dressed for somewhere you haven't been yet."* Visible, and unsolvable by finding a garment that fits |
 | Core loop (3–5 actions) | Take a garment off the rail → put it on → read what the mirror shows → keep it, layer it, or hang it back |
 | Personality (how the world misbehaves) | The reflection always arrives a beat late; the same garment doesn't always show the same room; sleeves sometimes refuse and the fit shifts between attempts; a garment hung back may return to the rail in a slightly different colour; the double-loaded hanger drifts to the front of the rail on its own |
-| The one secret | **Old under new.** The mirror shows *this* cubicle, furnished with objects lifted from whichever rooms the player lingered in longest — and for the first time the reflection is in sync instead of a beat late |
+| The one secret | **Old under new.** The mirror shows *this* cubicle — same curtain, same proportions — furnished and warmly lit, and for the first time the reflection is in sync instead of a beat late |
 | Traces (3–5 state variables) | `garmentsWorn`, `longestLinger` (which room held them), `oldNewRatio`, `layerAttempts`, `secretFound` |
 | Reflection | Names what the player reached for, never who they are — Tag Keeper, Returner, Room Sitter, Quick Changer, Layerer — and turns the strongest into a place, the way the cafe turns traits into an inner room |
-| Transformation | The cubicle starts bare under blue light. Wallpaper, light and one object from each lingered-in room leak into it. After the secret, the curtain line softens to *"you can stay in here as long as you like"* |
+| Transformation | The light in the cubicle warms with the rooms the player stayed in, and everything they take off stays on the bench. After the secret, the curtain line softens to *"you can stay in here as long as you like"* |
 | Take-home artifact | A downloadable card: a pixel strip of the garments the player kept returning to, or the furnished cubicle if the secret was found, plus one line about what they kept reaching for rather than what they chose |
 
 ### The four pairings
@@ -78,9 +81,9 @@ dressed body — four legible outcomes.
 | Pairing | What the mirror does |
 |---|---|
 | **Old under new** | *The secret.* This cubicle, furnished, reflection in sync |
-| **Old over new** | The old room, with one object in it that doesn't belong there |
+| **Old over new** | The old room, with a garment not yet worn standing in it |
 | **New over new** | Two rooms at once, overlaid and misregistered — a double exposure, neither legible |
-| **Old over old** | One room, furniture pushed against the walls, as if being moved out of |
+| **Old over old** | The room split down the middle and slid apart — everything against the walls |
 
 New over new is the near-miss and must never be silent: silence reads as *that isn't a thing you
 can do*, a response reads as *not those two*. Old over old is the closest this game comes to
@@ -129,6 +132,26 @@ is on it. A game about things not fitting must not withhold its ending until som
 - **The product test found the gap the design didn't.** Nothing signposted that a garment could
   come *off*, and two layers is the ceiling, so a layered player could sit there stuck. That is
   now its own rung on the hint ladder.
-- **A quick player forgoes the furniture, and that reads as intentional.** Dwell is only recorded
-  when the mirror actually settles, so changing faster than the reflection means no rooms leak
-  into the cubicle. The Quick Changer trait names the behaviour instead of the game correcting it.
+- **A quick player forgoes the warmth, and that reads as intentional.** Dwell is only recorded
+  when the mirror actually settles, so changing faster than the reflection means the cubicle
+  never warms. The Quick Changer trait names the behaviour instead of the game correcting it.
+
+### What changed when the art arrived
+
+The game was built with everything drawn in code, then restyled with generated 90s-anime pastel
+pixel art. Three mechanics had to be re-thought rather than re-skinned:
+
+- **Two mechanics depended on being able to move furniture,** which flat artwork cannot do. *Old
+  over old* is now the room image split down the middle and slid apart, which pushes everything
+  to the walls more convincingly than the drawn version did. And the objects that used to leak
+  into the cubicle became the garments you take off, piling on the bench — the same idea, told
+  with art that already existed.
+- **The generated rooms disagreed about aspect ratio** — the warm ones came out landscape, the
+  cold ones portrait — so the mirror became square. Cropping them all to the original tall frame
+  would have cut a third of the width off the warm rooms, including the bedroom door that carries
+  a hint.
+- **Flat-lay garment art is wider than a worn garment,** so a single scale factor either hangs
+  correctly or fits her shoulders, never both. Width and height scale separately now.
+
+The luckiest break: the generated furnished cubicle kept the same pink curtain as the empty one,
+so the secret reads unmistakably as *this* room rather than another one.
