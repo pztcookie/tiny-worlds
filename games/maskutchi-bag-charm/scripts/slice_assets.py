@@ -186,28 +186,32 @@ def build(index, name, screen_w, report):
     sprite = img.convert("RGBA")
     sprite.putalpha(alpha)
 
+    # Every enclosed black region is background that the artwork happens to have sealed off:
+    # the holes through the keyring, the ball chain on the blind bag, the glass foot of the
+    # parfait and the middle of the brand ring. All of them are holes.
+    enclosed = regions(bytearray(d and not b for d, b in zip(dark, bg)), w, h)
+    data = sprite.load()
     interior = None
+
     if name == "pouch":
-        enclosed = regions(bytearray(d and not b for d, b in zip(dark, bg)), w, h)
         if not enclosed:
             sys.exit("the pouch has no enclosed interior — has the source art changed?")
-        interior, *holes = enclosed
-        strokes = [r for r in regions(shine, w, h) if len(r) >= SHINE_MIN]
-        if report:
-            print(f"  interior {len(interior)} px, {len(holes)} holes, {len(strokes)} shine strokes")
-            print(f"  holes {[len(r) for r in holes[:8]]} strokes {[len(r) for r in strokes]}")
-
-        # Repainted after the feather, so the soft edge stays on the outline and these
-        # three keep the exact alpha they were given.
-        data = sprite.load()
+        # Except the largest one, which is the vinyl, and is tinted rather than opened.
+        interior, *enclosed = enclosed
         for i in interior:
             data[i % w, i // w] = VINYL
-        for hole in holes:
-            for i in hole:
-                data[i % w, i // w] = (0, 0, 0, 0)
-        for stroke in strokes:
+        for stroke in (r for r in regions(shine, w, h) if len(r) >= SHINE_MIN):
             for i in stroke:
                 data[i % w, i // w] = SHINE
+
+    # Repainted after the feather, so the soft edge stays on the outline and everything
+    # here keeps the exact alpha it was given.
+    for hole in enclosed:
+        for i in hole:
+            data[i % w, i // w] = (0, 0, 0, 0)
+
+    if report:
+        print(f"  {len(enclosed)} holes{f', interior {len(interior)} px' if interior else ''}")
 
     box = sprite.getbbox()
     if not box:
