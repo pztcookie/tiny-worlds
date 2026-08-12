@@ -43,19 +43,19 @@ const PACE = {
 /** Three families, because colour is the most legible thing in this art and a family
  *  needs no legend. The bunny is a family of one, which is the whole secret. */
 const KINDS = {
-  soda: { art: "item-soda", family: "grape", w: 54 },
-  "grape-candy": { art: "item-grape-candy", family: "grape", w: 56 },
-  tart: { art: "item-tart", family: "grape", w: 50 },
-  parfait: { art: "item-parfait", family: "grape", w: 46 },
-  candy: { art: "item-candy", family: "milk", w: 46 },
-  yakult: { art: "item-yakult", family: "milk", w: 34 },
-  pudding: { art: "item-pudding", family: "milk", w: 48 },
-  star: { art: "item-star", family: "milk", w: 30 },
-  cookie: { art: "item-cookie", family: "cream", w: 62 },
-  peanut: { art: "item-peanut", family: "cream", w: 46 },
-  choco: { art: "item-choco", family: "cream", w: 74 },
-  blindbag: { art: "item-blindbag", family: "cream", w: 66 },
-  bunny: { art: "bunny", family: "lilac", w: 62 },
+  soda: { art: "item-soda", family: "grape", w: 54, name: "the soda bottle" },
+  "grape-candy": { art: "item-grape-candy", family: "grape", w: 56, name: "the grape candy" },
+  tart: { art: "item-tart", family: "grape", w: 50, name: "the grape tart" },
+  parfait: { art: "item-parfait", family: "grape", w: 46, name: "the parfait" },
+  candy: { art: "item-candy", family: "milk", w: 46, name: "the blue candy" },
+  yakult: { art: "item-yakult", family: "milk", w: 34, name: "the little bottle" },
+  pudding: { art: "item-pudding", family: "milk", w: 48, name: "the blue pudding" },
+  star: { art: "item-star", family: "milk", w: 30, name: "the tiny star" },
+  cookie: { art: "item-cookie", family: "cream", w: 62, name: "the cookie packet" },
+  peanut: { art: "item-peanut", family: "cream", w: 46, name: "the peanut butter" },
+  choco: { art: "item-choco", family: "cream", w: 74, name: "the choco box" },
+  blindbag: { art: "item-blindbag", family: "cream", w: 66, name: "the blind bag" },
+  bunny: { art: "bunny", family: "lilac", w: 62, name: "the bunny" },
 };
 
 /** Where the twelve land when the bag is tipped out. Placed by hand rather than
@@ -118,6 +118,7 @@ const Inside = {
   h: 96,
   rows: null,
   zip: null, // the two ends of the top edge, in fractions of the sprite
+  corners: null,
 
   async load() {
     try {
@@ -132,27 +133,27 @@ const Inside = {
     }
   },
 
-  /** The mouth, found rather than measured: the interior is a rectangle at an angle, so
-   *  its topmost cell and its leftmost cell are two of its corners, and the edge between
-   *  them is where the zip runs. */
+  /** The corners, found rather than measured: the interior is a rectangle at an angle, so
+   *  its topmost, leftmost, lowest and rightmost cells are its four corners. The zip runs
+   *  along the edge from the top corner to whichever of its neighbours is higher. */
   findZip() {
     let top = null;
     let left = null;
     let right = null;
+    let low = null;
     for (let j = 0; j < this.h; j += 1) {
       for (let i = 0; i < this.w; i += 1) {
         if (this.rows[j][i] !== "1") continue;
         if (!top) top = { i, j };
+        low = { i, j };
         if (!left || i < left.i) left = { i, j };
         if (!right || i > right.i) right = { i, j };
       }
     }
     if (!top) return;
-    const near = left.j - top.j <= right.j - top.j ? left : right;
-    this.zip = [
-      { x: (top.i + 0.5) / this.w, y: (top.j + 0.5) / this.h },
-      { x: (near.i + 0.5) / this.w, y: (near.j + 0.5) / this.h },
-    ];
+    const frac = (c) => ({ x: (c.i + 0.5) / this.w, y: (c.j + 0.5) / this.h });
+    this.corners = [top, right, low, left].map(frac);
+    this.zip = [frac(top), frac(left.j - top.j <= right.j - top.j ? left : right)];
   },
 
   /** Is this point in the world inside the vinyl? */
@@ -268,8 +269,12 @@ function begin(name) {
   game.ends = clock + game.pace.ms;
 
   document.querySelectorAll(".charm").forEach((el) => {
-    el.classList.add(el.dataset.pace === name ? "chosen" : "spent");
-    if (el.dataset.pace !== name) el.disabled = true;
+    if (el.dataset.pace === name) return el.classList.add("chosen");
+    el.classList.add("spent");
+    el.disabled = true;
+    // Gone rather than merely transparent: the two you did not pick have no further part
+    // in this, and a keyboard should not be able to find them.
+    setTimeout(() => el.remove(), 1000);
   });
   document.getElementById("charms").classList.remove("flare");
   beatSoon();
@@ -417,6 +422,7 @@ function copyOf(it) {
 function pushOut(it, { quietly = false } = {}) {
   if (!quietly) ring(it.x, it.y, it.w * 0.6);
   sparkle(it.x, it.y, "#e4d6ff", 11);
+  Trace.pushedOut += 1;
 
   if (it.copy) {
     items = items.filter((other) => other !== it);
@@ -477,6 +483,46 @@ function beat() {
   }
 
   Hints.notice();
+}
+
+/* ---------- the bunny, which is the only thing that points ---------- */
+
+/** It sits on the strap, so anywhere it hops to is on the strap too. */
+const perch = (x) => strapY(x) - 37;
+
+const hop = { from: 0, to: BUNNY_HOME.x, born: 0 };
+
+function hopNearer() {
+  const b = bunny();
+  if (!b || b.inside || b.held || hop.to >= 460) return;
+  hop.from = hop.to;
+  hop.to = Math.min(460, hop.to + 97);
+  hop.born = clock;
+}
+
+/** ANTI-STUCK, wordlessly: it leans at whatever is going, and on a stall it moves towards
+ *  the mouth of the pouch. It never gets in by itself. */
+function watchOver(dt) {
+  const b = bunny();
+  if (!b || b.inside || b.held) return;
+
+  if (hop.born) {
+    const t = (clock - hop.born) / 620;
+    if (t >= 1) {
+      hop.born = 0;
+      b.x = hop.to;
+    } else {
+      b.x = hop.from + (hop.to - hop.from) * t;
+      b.y = perch(b.x) - Math.sin(t * Math.PI) * 26;
+    }
+  }
+  if (!hop.born) b.y = perch(b.x) + Math.sin(clock * 0.0016) * 1.6;
+
+  const going = packed()
+    .filter((it) => it.fade > 0)
+    .sort((a, b2) => b2.fade - a.fade)[0];
+  const want = going ? Math.max(-0.3, Math.min(0.3, (going.x - b.x) * 0.0016)) : 0;
+  b.rot += (want - b.rot) * (1 - Math.exp(-dt / 260));
 }
 
 let beatTimer = null;
@@ -569,7 +615,7 @@ function strapLine(offset, lift) {
 }
 
 function drawStrap() {
-  const lift = Math.sin(clock * 0.0011) * 2.5 * (0.35 + weather.tempo);
+  const lift = calm ? 0 : Math.sin(clock * 0.0011) * 2.5 * (0.35 + weather.tempo);
 
   g.save();
   g.lineCap = "butt";
@@ -685,6 +731,34 @@ function spark(x, y, r, colour, alpha = 1) {
   g.restore();
 }
 
+/** TRANSFORMATION, first half: an empty pouch is an outline waiting to be filled. It stops
+ *  the moment anything is in there, and by the end the same shape is a closed pouch with
+ *  one particular arrangement in it. */
+function drawWaiting() {
+  if (!Inside.corners || packed().length || game.zipped) return;
+  const at = Inside.corners.map((c) => Inside.at(c.x, c.y));
+  const pulse = 0.3 + Math.sin(clock * 0.0024) * 0.16;
+
+  g.save();
+  g.beginPath();
+  at.forEach((p, i) => (i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y)));
+  g.closePath();
+
+  const middle = Inside.at(0.5, 0.5);
+  const glow = g.createRadialGradient(middle.x, middle.y, 0, middle.x, middle.y, POUCH.w * 0.6);
+  glow.addColorStop(0, `rgba(190, 168, 255, ${pulse * 0.4})`);
+  glow.addColorStop(1, "rgba(190, 168, 255, 0)");
+  g.fillStyle = glow;
+  g.fill();
+
+  g.globalAlpha = pulse;
+  g.strokeStyle = "#b3a0f5";
+  g.lineWidth = 2.5;
+  g.setLineDash([10, 10]);
+  g.stroke();
+  g.restore();
+}
+
 function drawMarks() {
   for (const r of rings) {
     const t = (clock - r.born) / 9000;
@@ -747,13 +821,17 @@ function drawItem(it) {
   // Going: dimmer, and less and less steady on its feet.
   if (it.fade) rot += Math.sin(clock * 0.017 + it.id) * 0.075 * it.fade;
 
-  if (guarded(it) && it.inside && it.kind !== "bunny") {
-    const glow = g.createRadialGradient(it.x, it.y, 0, it.x, it.y, it.w * 0.95);
-    glow.addColorStop(0, it.starred ? "rgba(255, 240, 176, 0.5)" : "rgba(198, 170, 255, 0.42)");
+  // Exempt, and it has to be visible or the secret has nothing to show for itself. It
+  // breathes, because a still glow on a pale sky is easy to miss.
+  if (it.inside && it.kind !== "bunny" && guarded(it)) {
+    const r = it.w * (0.92 + Math.sin(clock * 0.0022 + it.id) * 0.1);
+    const glow = g.createRadialGradient(it.x, it.y, 0, it.x, it.y, r);
+    glow.addColorStop(0, it.starred ? "rgba(255, 226, 122, 0.72)" : "rgba(168, 124, 255, 0.6)");
+    glow.addColorStop(0.55, it.starred ? "rgba(255, 226, 122, 0.28)" : "rgba(168, 124, 255, 0.22)");
     glow.addColorStop(1, "rgba(255, 255, 255, 0)");
     g.fillStyle = glow;
     g.beginPath();
-    g.arc(it.x, it.y, it.w * 0.95, 0, Math.PI * 2);
+    g.arc(it.x, it.y, r, 0, Math.PI * 2);
     g.fill();
   }
 
@@ -774,6 +852,7 @@ function render() {
   drawShadow();
   drawStrap();
 
+  drawWaiting();
   drawMarks();
   for (const it of items) if (it.inside && !it.held) drawItem(it);
   paste("pouch", POUCH.x + POUCH.sway + POUCH.w / 2, POUCH.y + POUCH.h / 2, POUCH.w, POUCH.h);
@@ -783,15 +862,20 @@ function render() {
   drawSparks();
 }
 
-let clock = 0;
+// Started from the real clock rather than from zero, so anything that stamps itself with
+// the time before the first frame still reads as having happened.
+let clock = performance.now();
 let lastFrame = 0;
+
+/** Asked once: someone who does not want the world swinging gets a still one. */
+const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 function frame(now) {
   const dt = Math.min(64, now - lastFrame || 16);
   lastFrame = now;
   clock = now;
 
-  const sway = Math.sin(now * 0.0011) * 7 * (0.25 + weather.tempo);
+  const sway = calm ? 0 : Math.sin(now * 0.0011) * 7 * (0.25 + weather.tempo);
   // Everything in the pouch swings with the pouch, so the vinyl is a place and not a hole.
   const swing = sway - POUCH.sway;
   POUCH.sway = sway;
@@ -799,6 +883,7 @@ function frame(now) {
 
   blow(dt, now);
   drift(dt);
+  watchOver(dt);
   if (game.pace && !game.zipped && !game.over && progress() >= 1) closeZip();
 
   render();
@@ -807,30 +892,55 @@ function frame(now) {
 
 /* ---------- REFLECTION — what they did, never what they are ---------- */
 
+/** What is actually in there, in words, grouped so four copies read as four copies. */
+function contents() {
+  const inside = packed();
+  if (!inside.length) return "nothing at all";
+
+  const seen = new Map();
+  for (const it of inside) seen.set(it.kind, (seen.get(it.kind) ?? 0) + 1);
+
+  // The odd one out is named first when it is in there, rather than being swallowed by
+  // the count at the end of the list.
+  const kinds = [...seen].sort(([a], [b]) => (a === "bunny" ? -1 : b === "bunny" ? 1 : 0));
+  const said = kinds.map(([kind, n]) => (n > 1 ? `${KINDS[kind].name} ×${n}` : KINDS[kind].name));
+  const shown = said.slice(0, 3);
+  if (said.length === 4) shown.push(said[3]);
+  else if (said.length > 4) shown.push(`${said.length - 3} more`);
+  if (shown.length === 1) return shown[0];
+  return `${shown.slice(0, -1).join(", ")} and ${shown.at(-1)}`;
+}
+
 function reflect() {
   const s = Trace.state;
   const traits = [];
 
   if (s.bunnyInside) traits.push(["Room For The Odd One", "you put in the one thing nobody handed you"]);
-  if (s.copiesKept >= 4) traits.push(["Crowd", `you let ${s.copiesKept} near-identical things stand`]);
+  if (s.copiesKept >= 3) traits.push(["Crowd", `you let ${s.copiesKept} near-identical things stand`]);
   if (s.madeRoomFor >= 2) traits.push(["You Went Back", `you went back for ${s.madeRoomFor} things that were already going`]);
-  if (s.pulledBackOut >= 4) traits.push(["Editor", `you took ${s.pulledBackOut} things out again`]);
-  if (s.tempo < 0.22) traits.push(["Slow Hand", "you moved slowly enough that the sky went cream"]);
-  if (s.tempo > 0.55) traits.push(["Quick Hand", "you moved faster than the pouch could keep up with"]);
-  if (!traits.length) traits.push(["Packed", `you put ${packed().length} things in and left the rest in the spill`]);
+  if (s.pulledBackOut >= 3) traits.push(["Editor", `you took ${s.pulledBackOut} things out again`]);
+  if (s.tempo < 0.2) traits.push(["Slow Hand", "you moved slowly enough to turn the sky warm"]);
+  if (s.tempo > 0.5) traits.push(["Quick Hand", "you moved faster than the pouch could keep up with"]);
+  if (!traits.length) {
+    traits.push(["Packed", `you put ${packed().length} things in and left the rest in the spill`]);
+  }
 
   const pouches = {
     "Room For The Odd One": "a pouch with the mascot inside it, facing out",
-    Crowd: "a pouch you can't see the far side of",
-    "You Went Back": "a pouch with the same thing in it twice, on purpose",
+    Crowd: "a pouch you cannot see the far side of",
+    "You Went Back": "a pouch holding things that had already started to go",
     Editor: "a pouch with room left in it",
-    "Slow Hand": "a pouch arranged in cream light",
+    "Slow Hand": "a pouch arranged in warm light",
     "Quick Hand": "a pouch packed at a run",
-    Packed: "a pouch with a few things in it and the rest left out",
+    Packed: "a pouch with a few things in it and the rest left outside",
   };
 
   const top = traits.slice(0, 3);
-  return { traits: top, pouch: pouches[top[0][0]] };
+  return {
+    traits: top,
+    pouch: pouches[top[0][0]],
+    kept: contents(),
+  };
 }
 
 /* ============================== ENGINE ============================== */
@@ -847,9 +957,17 @@ const Trace = {
     bunnyInside: false,
   },
   acts: 0,
+  pushedOut: 0,
 
   putIn(it) {
-    if (it.kind === "bunny") this.state.bunnyInside = true;
+    if (it.kind === "bunny") {
+      this.state.bunnyInside = true;
+      // REWARD — no fanfare and no win screen. The exemption showing up on whatever is
+      // resting nearby is the actual reward; this is only the world noticing.
+      Hints.retire("bunny");
+      sparkle(it.x, it.y, "#dcc9ff", 16);
+      once("bunny", "it doesn't mind being in there");
+    }
     this.act();
   },
 
@@ -895,43 +1013,248 @@ function whisper(text) {
   whisperTimer = setTimeout(() => el.classList.remove("showing"), 2600);
 }
 
-/** HINTS — filled in with the rest of the ladder. */
+/**
+ * HINTS — there is no fail state here, so being stuck is the only failure, and the timer
+ * means it has to be caught fast. The world nudges when the player goes quiet and when the
+ * beat notices its own rules emptying the pouch. Wordless first: the charms flare, a
+ * miniature hops, the bunny leans and then hops nearer. Only then does the tag speak, and
+ * it climbs to nearly explicit rather than staying coy. Every rung retires for good once
+ * the bunny is inside.
+ */
 const Hints = {
   idleMs: 7000,
   _timer: null,
   _retired: new Set(),
+  _level: {},
+  _restore: null,
+
+  ladder: ["…", "the bunny isn't worried", "nothing next to the bunny has ever disappeared."],
 
   wake() {
     clearTimeout(this._timer);
     this._timer = setTimeout(() => this.offer(), this.idleMs);
   },
 
-  offer() {
-    if (!game.pace) {
-      document.getElementById("charms").classList.add("flare");
-      setTimeout(() => document.getElementById("charms").classList.remove("flare"), 4600);
-    }
-    this.wake();
+  candidates() {
+    const out = [];
+    if (!game.pace) out.push("charms");
+    else if (!packed().length) out.push("packing");
+    else if (Trace.pushedOut >= 1 && !packed().some((it) => it.kind === "bunny")) out.push("bunny");
+    return out.filter((id) => !this._retired.has(id));
   },
 
-  /** Called every beat, so the world can watch what its own rules are doing. */
-  notice() {},
+  offer() {
+    this.wake();
+    const pick = this.candidates()[0];
+    if (!pick) return;
+
+    if (pick === "charms") {
+      const charms = document.getElementById("charms");
+      charms.classList.add("flare");
+      setTimeout(() => charms.classList.remove("flare"), 4600);
+      return;
+    }
+
+    // The nearest thing to the pouch lifts, which is the only cue the packing needs.
+    if (pick === "packing") {
+      const near = items
+        .filter((it) => !it.inside && it.kind !== "bunny")
+        .sort((a, b) => Math.abs(b.x - 300) - Math.abs(a.x - 300))[0];
+      if (near) near.nudge = clock;
+      return;
+    }
+
+    hopNearer();
+    const level = (this._level.bunny = Math.min(2, (this._level.bunny ?? -1) + 1));
+    this.say(this.ladder[level]);
+  },
+
+  /** Called every beat, so the world can watch what its own rules are doing. Busy is not
+   *  the same as unstuck: the pouch emptying itself is a stall even if the hand is moving. */
+  notice() {
+    if (Trace.pushedOut >= 3 && this.candidates().includes("bunny") && (this._level.bunny ?? -1) < 1) {
+      this.offer();
+    }
+  },
+
+  say(line) {
+    const tag = document.getElementById("tag");
+    const quest = document.getElementById("quest");
+    clearTimeout(this._restore);
+    tag.classList.add("hinting");
+    quest.textContent = line;
+    this._restore = setTimeout(() => {
+      tag.classList.remove("hinting");
+      quest.textContent = CONFIG.quest;
+    }, 5200);
+  },
 
   retire(id) {
     this._retired.add(id);
+    clearTimeout(this._restore);
+    document.getElementById("tag").classList.remove("hinting");
+    document.getElementById("quest").textContent = CONFIG.quest;
   },
 };
 
-function drawCard() {
-  return reflect();
+/** TAKE HOME — the pouch they ended up with, zipped, in the weather their own hand made,
+ *  with exactly their arrangement in it. Drawn from the same numbers as the world, so it is
+ *  a picture of what happened rather than a stock image. */
+function drawCard(said) {
+  const c = document.getElementById("card");
+  const k = c.getContext("2d");
+  const CW = c.width;
+  const CH = c.height;
+
+  const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
+  const rgb = (v) => `rgb(${v[0]}, ${v[1]}, ${v[2]})`;
+  const heat = Math.min(1, Trace.state.tempo * 1.4);
+  const hi = mix(mix([166, 203, 242], [247, 214, 162], weather.warm * 0.6), [81, 131, 201], heat * 0.48);
+  const lo = mix(mix([220, 237, 255], [255, 240, 208], weather.warm * 0.6), [143, 186, 234], heat * 0.48);
+
+  const sky = k.createLinearGradient(0, 0, 0, CH);
+  sky.addColorStop(0, rgb(hi));
+  sky.addColorStop(1, rgb(lo));
+  k.fillStyle = sky;
+  k.fillRect(0, 0, CW, CH);
+
+  // The stars, from a fixed seed so the same pouch always prints the same sky.
+  let seed = 20260812;
+  const rnd = () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
+  for (let i = 0; i < 34; i += 1) {
+    const x = rnd() * CW;
+    const y = rnd() * CH;
+    const r = 1.6 + rnd() * 3.4;
+    k.save();
+    k.globalAlpha = 0.4 + rnd() * 0.5;
+    k.fillStyle = rnd() > 0.7 ? "#fff0bd" : "#ffffff";
+    k.beginPath();
+    k.moveTo(x, y - r);
+    k.quadraticCurveTo(x, y, x + r, y);
+    k.quadraticCurveTo(x, y, x, y + r);
+    k.quadraticCurveTo(x, y, x - r, y);
+    k.quadraticCurveTo(x, y, x, y - r);
+    k.fill();
+    k.restore();
+  }
+
+  const pw = 380;
+  const ph = (pw * POUCH.h) / POUCH.w;
+  const px = 110;
+  const py = 120;
+  const zoom = pw / POUCH.w;
+
+  // The strap it is still hanging from.
+  k.save();
+  k.lineCap = "butt";
+  k.strokeStyle = "#4a5a9e";
+  k.lineWidth = 34;
+  k.beginPath();
+  k.moveTo(-10, 185);
+  k.lineTo(CW + 10, 95);
+  k.stroke();
+  k.strokeStyle = "rgba(206, 220, 255, 0.45)";
+  k.lineWidth = 1.4;
+  k.setLineDash([7, 6]);
+  for (const off of [-9, 9]) {
+    k.beginPath();
+    k.moveTo(-10, 185 + off);
+    k.lineTo(CW + 10, 95 + off);
+    k.stroke();
+  }
+  k.restore();
+
+  const put = (key, fx, fy, w, h, rot) => {
+    const img = ART.get(key);
+    if (!img) return;
+    k.save();
+    k.translate(px + fx * pw, py + fy * ph);
+    if (rot) k.rotate(rot);
+    k.drawImage(img, (-w / 2) * zoom, (-h / 2) * zoom, w * zoom, h * zoom);
+    k.restore();
+  };
+
+  for (const it of packed()) {
+    put(
+      KINDS[it.kind].art,
+      (it.x - POUCH.x - POUCH.sway) / POUCH.w,
+      (it.y - POUCH.y) / POUCH.h,
+      it.w,
+      it.h,
+      it.rot,
+    );
+    if (it.starred) {
+      const sx = px + ((it.x - POUCH.x - POUCH.sway) / POUCH.w) * pw + it.w * 0.4 * zoom;
+      const sy = py + ((it.y - POUCH.y) / POUCH.h) * ph - it.h * 0.38 * zoom;
+      k.fillStyle = "#ffe89a";
+      k.beginPath();
+      k.arc(sx, sy, 4, 0, Math.PI * 2);
+      k.fill();
+    }
+  }
+
+  const pouchArt = ART.get("pouch");
+  if (pouchArt) k.drawImage(pouchArt, px, py, pw, ph);
+
+  // Shut, which is the whole point of a closed pouch.
+  if (Inside.zip) {
+    const a = { x: px + Inside.zip[0].x * pw, y: py + Inside.zip[0].y * ph };
+    const b = { x: px + Inside.zip[1].x * pw, y: py + Inside.zip[1].y * ph };
+    k.save();
+    k.lineCap = "round";
+    k.strokeStyle = "#5b6cb4";
+    k.lineWidth = 5;
+    k.beginPath();
+    k.moveTo(a.x, a.y);
+    k.lineTo(b.x, b.y);
+    k.stroke();
+    k.strokeStyle = "rgba(255, 255, 255, 0.85)";
+    k.lineWidth = 1.6;
+    k.setLineDash([3, 4]);
+    k.beginPath();
+    k.moveTo(a.x, a.y);
+    k.lineTo(b.x, b.y);
+    k.stroke();
+    k.restore();
+  }
+
+  const donut = ART.get("donut");
+  if (donut) k.drawImage(donut, CW - 92, 34, 52, (52 * donut.height) / donut.width);
+
+  k.fillStyle = "#38477a";
+  k.font = "13px ui-monospace, Menlo, monospace";
+  k.textAlign = "left";
+  k.save();
+  k.globalAlpha = 0.7;
+  k.fillText("maskutchi bag charm", 36, 58);
+  k.restore();
+
+  k.textAlign = "center";
+  k.font = "21px ui-monospace, Menlo, monospace";
+  k.fillText(said.traits[0][0].toLowerCase(), CW / 2, CH - 96);
+
+  k.font = "13px ui-monospace, Menlo, monospace";
+  k.fillStyle = "#5b6ba6";
+  const words = `${said.traits[0][1]}, and kept ${said.kept}.`.split(" ");
+  const lines = [""];
+  for (const word of words) {
+    const line = lines.at(-1);
+    if (k.measureText(`${line} ${word}`).width > CW - 110) lines.push(word);
+    else lines[lines.length - 1] = line ? `${line} ${word}` : word;
+  }
+  lines.slice(0, 3).forEach((line, i) => k.fillText(line, CW / 2, CH - 62 + i * 20));
 }
 
 function finish() {
   game.over = true;
   Trace.settle();
-  const { traits, pouch } = drawCard();
-  document.getElementById("reveal-title").textContent = traits[0][0];
-  document.getElementById("reveal-body").textContent = `${traits[0][1]} — so you have ${pouch}.`;
+  const said = reflect();
+  drawCard(said);
+
+  document.getElementById("reveal-title").textContent = said.traits[0][0];
+  document.getElementById("reveal-body").textContent = `${said.traits
+    .map(([, line]) => line)
+    .join(". ")}. The pouch kept ${said.kept}, because you decided it should.`;
   document.getElementById("world").hidden = true;
   document.getElementById("reveal").hidden = false;
   clearTimeout(Hints._timer);
