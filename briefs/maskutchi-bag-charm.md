@@ -150,6 +150,19 @@ rule that came out of it is one line long: in this art every enclosed black regi
 except the pouch's interior, which is the vinyl and becomes a faint tint. Guessing per sprite
 was what produced black blobs; a single rule with one deliberate exception fixed all fourteen.
 
+**The black background was still in the art after it had been keyed out.** Keying gives the
+edge pixels a partial alpha but leaves their colour blackened, and every pale sprite came out
+ringed in grey-navy on the sky — a soft band compositing fifty to sixty levels darker than the
+sky around it. The cause is that black adds nothing to what it is mixed with, so a half-covered
+pixel was written to the file as half its colour: the files were premultiplied by coverage all
+along and nobody had divided it back out. Doing that, and only at the very end so the crop and
+the downscale happen while the colour is still premultiplied, drops the band to five to
+seventeen levels and turns its colour from grey to the blue the artist actually drew. Two
+things fell out of it that no amount of feathering would have reached. Coverage does not have
+to be guessed at — over a black matte the brightness ratio at the boundary *is* the coverage —
+and the sharper resampler is the wrong one, because lanczos ringing on a premultiplied edge is
+a pixel whose colour has come loose from its coverage, and it lands as coloured speckle.
+
 **A translucent tint is a better see-through than transparency.** Cutting the interior out
 entirely made the pouch read as an empty outline. Twenty per cent of `(214, 238, 255)` over the
 miniatures — drawn underneath — is what makes it read as plastic, because the things inside it
