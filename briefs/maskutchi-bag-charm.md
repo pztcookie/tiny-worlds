@@ -150,6 +150,16 @@ rule that came out of it is one line long: in this art every enclosed black regi
 except the pouch's interior, which is the vinyl and becomes a faint tint. Guessing per sprite
 was what produced black blobs; a single rule with one deliberate exception fixed all fourteen.
 
+**Judge the art at the size it is drawn, not in a table.** The keyed edges do carry a measurable
+dark fringe — the black they were anti-aliased against is still in them — and unmatting it,
+which is arithmetic and provably faithful, was tried and reverted. On a black matte nothing
+distinguishes the artist's own navy outline from the background it was blended with, so
+recovering the edge brightened the outlines away: at 5x zoom and in the numbers the sprites were
+cleaner, and at 22 to 62 pixels on screen they were hazy stickers with no line and the yakult
+bottle nearly dissolved. The fringe is invisible at that size and the outlines are the whole
+character of this art. Anything touching the edges has to be looked at over the pastel sky at
+in-game size before it is believed.
+
 **A translucent tint is a better see-through than transparency.** Cutting the interior out
 entirely made the pouch read as an empty outline. Twenty per cent of `(214, 238, 255)` over the
 miniatures — drawn underneath — is what makes it read as plastic, because the things inside it
