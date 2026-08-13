@@ -160,6 +160,21 @@ bottle nearly dissolved. The fringe is invisible at that size and the outlines a
 character of this art. Anything touching the edges has to be looked at over the pastel sky at
 in-game size before it is believed.
 
+**Recolouring the leftover black worked where removing it did not.** The residue cannot be
+divided out, but it can be made to belong: it is blended toward `(220, 206, 255)`, the lilac the
+bunny's ears are already painted with. Reaching only pixels below luminance 45 keeps it clear of
+the line work, which starts at 76, so the outlines come through untouched — and the invisible
+pixels just outside the sprite are painted lilac too, because the downscale mixes their colour
+into the edge and it should find lilac there rather than black. That much is a small win, honest
+but subtle. The visible win was elsewhere: three spots are dark *paint* rather than residue — the
+candy's wrapper fin, the cookie packet's corner, the shadow behind the yakult's cap — folds the
+artist made near-black because the background was going to be black too. On the pastel sky they
+read as bites out of a sticker, and lifting them toward the same lilac turns each one back into a
+shadow. Nothing in the pixels tells them apart from the soda's navy cap, which is shading on a
+dark sprite and has to stay: brightness of the sprite, brightness around the spot and distance
+from the edge all measured the same for both. So they are named in the slicer, one line, an art
+call recorded rather than a heuristic guessed.
+
 **A translucent tint is a better see-through than transparency.** Cutting the interior out
 entirely made the pouch read as an empty outline. Twenty per cent of `(214, 238, 255)` over the
 miniatures — drawn underneath — is what makes it read as plastic, because the things inside it

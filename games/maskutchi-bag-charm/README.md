@@ -111,9 +111,9 @@ arrangement, zipped, in the weather your own hand produced. The trace is kept in
 
 Fifteen supplied 791×1024 PNGs in `assets/source/`, per-layer exports of one composition on an
 opaque black background rather than on transparency, cut by `scripts/slice_assets.py` into
-fourteen sprites and one bitmask. 479 KiB of sliced art, 245 KiB of which is the pouch, plus
-237 KiB of sources that ship for re-cutting but are never loaded — 716 KiB of `assets/` in
-total, of which the game loads 479 KiB. Nothing is fetched at
+fourteen sprites and one bitmask. 489 KiB of sliced art, 251 KiB of which is the pouch, plus
+237 KiB of sources that ship for re-cutting but are never loaded — 726 KiB of `assets/` in
+total, of which the game loads 489 KiB. Nothing is fetched at
 runtime and there is no API key; a missing file costs you that one picture rather than the
 room.
 
@@ -130,7 +130,7 @@ python3 -m venv .venv && .venv/bin/pip install Pillow
 .venv/bin/python games/maskutchi-bag-charm/scripts/slice_assets.py            # write
 ```
 
-Three things the script has to do, all of them consequences of the black background:
+Four things the script has to do, all of them consequences of the black background:
 
 - **Flood the black field inward from the border** and key it out, then crop to what is left.
 - **Punch out the enclosed black regions**, because in this art every one of them is a hole
@@ -140,6 +140,13 @@ Three things the script has to do, all of them consequences of the black backgro
   `(214, 238, 255)` tint at 20% alpha, and the shine strokes along its edge become white at
   35%. That tint is what makes the pouch read as clear plastic instead of as a hole, and the
   miniatures are drawn under it so they genuinely show through.
+- **Move the leftover black toward the lilac.** Keying cannot take back the black that the edges
+  were blended into, so instead of removing it the script blends it toward `(220, 206, 255)` —
+  the lilac the bunny's ears are painted with — and stops well below the luminance of the navy
+  line work, which is the character of this art and is never touched. Three folds the artist
+  painted near-black are lifted the same way and by name: the candy's wrapper fin, the cookie
+  packet's corner and the shadow behind the yakult's cap, each of which read as a hole punched
+  in the sticker once the sky went pastel.
 
 The interior is also written out as `assets/pouch-inside.json`, a 64×96 bitmask, so the game
 can tell whether a dropped miniature landed in the pouch. The pouch hangs at an angle, so no

@@ -20,6 +20,13 @@ Two things make this more than a threshold:
   in the file is between 45 and 76 — and become pale highlights. Together those three are
   what make the pouch read as clear vinyl with things inside it.
 
+Keying that black leaves some of it behind, in the soft band where the paint was blended
+into it and in the folds the artist painted near-black because the background was going to
+be black too. Two steps afterwards move that dark toward the palette's lilac instead of
+trying to remove it — see lilac_rim and lilac_paint. Neither touches coverage, and neither
+goes anywhere near the navy line work: recovering these edges by arithmetic was tried, and
+it brightened the outlines away.
+
 The pouch's interior doubles as the playable area. It is drawn slightly rotated, so no
 rectangle matches it; the region found here is written out as a low-resolution bitmask in
 assets/pouch-inside.json and the game samples that to decide whether a point is inside.
@@ -42,6 +49,27 @@ OUT = HERE / "assets"
 
 DARK = 18  # luminance at or below this is a candidate for background
 FEATHER = 0.8  # blur radius on the alpha edge; the line work glows and should not look cut
+
+LILAC = (220, 206, 255)  # the bunny's ears: a thousand pixels of it, so it is the art's own
+RIM = 0.9  # how far the darkest residue moves toward it, and never all the way
+RIM_LUM = 45  # residue is near-black, and the line work in this art starts at 76
+RIM_HOLD = 0.55  # an opaque edge pixel moves less far, so the rim stays a gradient
+RIM_BLEED = 3  # and the cleared pixels this close carry it too, for the resampler to find
+
+# Three spots in this set are dark paint and not matte residue: the candy's left wrapper fin,
+# the cookie packet's bottom corner and the shadow behind the yakult's cap. Against the dark
+# background the art was drawn on they were folds, and on the pastel sky they read as bites out
+# of the sticker. They are named here rather than found, because nothing in the pixels separates
+# them from the soda's navy cap or the dark beads on the pouch, which are shading on dark paint
+# and have to stay. The number is how many of a sprite's near-black shapes to lift, largest
+# first.
+PAINT_SPOTS = {"item-candy": 2, "item-cookie": 1, "item-yakult": 1}
+PAINT = 0.7  # a lift and not a repaint: the fold keeps its shape and its gradient
+PAINT_CORE = 45  # the near-black part of the fold, which is what can be found by colour
+PAINT_LUM = 110  # the rest of it is dark paint in the same range as the line work, so it is
+PAINT_GROW = 3  # grown out from that core a few pixels instead of being selected
+PAINT_MIN = 10  # and a core smaller than this is a speck, not a fold
+PAINT_SOLID = 240  # solid enough: the feather nibbles the outermost ring of every shape
 
 VINYL = (214, 238, 255, 51)  # the pouch interior: clear blue, barely there
 SHINE = (255, 255, 255, 95)  # the strokes along its edge
@@ -171,6 +199,135 @@ def bitmask(cells, w, box):
     return rows
 
 
+def toward_lilac(px, x, y, pull, ceiling):
+    """Blend one pixel toward the lilac, the darker the further, and never past `pull`."""
+    r, g, b, a = px[x, y]
+    value = (r * 299 + g * 587 + b * 114) // 1000
+    if value >= ceiling:
+        return 0
+    k = pull * (1 - value / ceiling)
+    px[x, y] = (
+        round(r + (LILAC[0] - r) * k),
+        round(g + (LILAC[1] - g) * k),
+        round(b + (LILAC[2] - b) * k),
+        a,
+    )
+    return 1
+
+
+def lilac_rim(sprite, w, h):
+    """Move the black the keying leaves behind toward the palette's lilac.
+
+    Keying an edge that was anti-aliased against black gives it a partial alpha and leaves
+    the black in the colour, and on a pale sky that is a grey rim. This does not try to
+    work out what colour was under it — that way lies brightening the artist's navy
+    outlines out of existence. It just makes the residue belong to the palette: a rim that
+    steps from outline to lilac to sky reads as a soft glow rather than as a dark cut.
+
+    Three sets of pixels, and only these three:
+
+    * The soft band, which is where the residue is. Darkest moves most, and RIM_LUM keeps
+      the reach below the line work, which starts far above it.
+    * Opaque pixels that are near-black *and* touching the band, which is matte residue the
+      threshold happened to round up to solid. They move less far, so the rim keeps a ramp.
+    * Cleared pixels near the sprite, which are invisible but not inert: the downscale
+      resamples their colour into the edge, and it should find lilac there and not black.
+
+    Nothing else. Coverage is not touched anywhere, and opaque paint above RIM_LUM comes
+    through exactly as drawn.
+    """
+    px = sprite.load()
+    n = w * h
+    band = bytearray(n)
+    clear = bytearray(n)
+    for y in range(h):
+        row = y * w
+        for x in range(w):
+            a = px[x, y][3]
+            if not a:
+                clear[row + x] = 1
+            elif a < 255:
+                band[row + x] = 1
+
+    moved = 0
+    for i in range(n):
+        if band[i]:
+            moved += toward_lilac(px, i % w, i // w, RIM, RIM_LUM)
+    for i in range(n):
+        if band[i] or clear[i]:
+            continue
+        x = i % w
+        if not any(
+            band[j]
+            for j in (i - 1 if x else -1, i + 1 if x < w - 1 else -1, i - w, i + w)
+            if 0 <= j < n
+        ):
+            continue
+        moved += toward_lilac(px, x, i // w, RIM_HOLD, RIM_LUM)
+
+    # The cleared ring last, and flat: there is no colour under a pixel that is not there,
+    # so this is only about what the resample has to hand at the edge.
+    frontier = [i for i in range(n) if not clear[i]]
+    for _ in range(RIM_BLEED):
+        nxt = []
+        for i in frontier:
+            x = i % w
+            for j in (i - 1 if x else -1, i + 1 if x < w - 1 else -1, i - w, i + w):
+                if 0 <= j < n and clear[j] == 1:
+                    clear[j] = 2
+                    px[j % w, j // w] = LILAC + (0,)
+                    nxt.append(j)
+        frontier = nxt
+    return moved
+
+
+def lilac_paint(sprite, name, w, h):
+    """Lift a named fold of dark paint toward the same lilac, so it stops reading as a hole.
+
+    The fold's near-black core is easy to find. The rest of it is not: the paint that shades
+    into the core sits in the same luminance range as the navy outlines, and picking that range
+    by colour would lift every outline in the sprite, which is exactly how the last attempt at
+    these edges failed. So the core is grown outward a few pixels through dark paint instead,
+    which reaches the whole fold and cannot reach across the sprite.
+    """
+    keep = PAINT_SPOTS.get(name)
+    if not keep:
+        return 0
+    px = sprite.load()
+    n = w * h
+    core = bytearray(n)
+    for i in range(n):
+        r, g, b, a = px[i % w, i // w]
+        if a >= PAINT_SOLID and (r * 299 + g * 587 + b * 114) // 1000 <= PAINT_CORE:
+            core[i] = 1
+    shapes = (c for c in regions(core, w, h) if len(c) >= PAINT_MIN)
+    found = sorted(shapes, key=len, reverse=True)
+    if len(found) < keep:
+        sys.exit(f"{name}: wanted {keep} dark fold(s), found {len(found)} — has the art moved?")
+
+    fold = set()
+    for cells in found[:keep]:
+        fold.update(cells)
+    frontier = list(fold)
+    for _ in range(PAINT_GROW):
+        nxt = []
+        for i in frontier:
+            x = i % w
+            for j in (i - 1 if x else -1, i + 1 if x < w - 1 else -1, i - w, i + w):
+                if j < 0 or j >= n or j in fold:
+                    continue
+                r, g, b, a = px[j % w, j // w]
+                if a >= PAINT_SOLID and (r * 299 + g * 587 + b * 114) // 1000 <= PAINT_LUM:
+                    fold.add(j)
+                    nxt.append(j)
+        frontier = nxt
+
+    moved = 0
+    for i in fold:
+        moved += toward_lilac(px, i % w, i // w, PAINT, PAINT_LUM)
+    return moved
+
+
 def build(index, name, screen_w, report):
     img = Image.open(source(index)).convert("RGB")
     w, h = img.size
@@ -210,8 +367,14 @@ def build(index, name, screen_w, report):
         for i in hole:
             data[i % w, i // w] = (0, 0, 0, 0)
 
+    # The fold first: the rim pass lifts the outer pixels of a dark shape out of its own range
+    # and would leave the middle of it black.
+    lifted = lilac_paint(sprite, name, w, h)
+    tinted = lilac_rim(sprite, w, h)
+
     if report:
         print(f"  {len(enclosed)} holes{f', interior {len(interior)} px' if interior else ''}")
+        print(f"  {tinted} px of rim residue and {lifted} px of dark paint moved to the lilac")
 
     box = sprite.getbbox()
     if not box:
