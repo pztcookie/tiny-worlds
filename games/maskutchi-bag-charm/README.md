@@ -111,10 +111,11 @@ arrangement, zipped, in the weather your own hand produced. The trace is kept in
 
 Fifteen supplied 791×1024 PNGs in `assets/source/`, per-layer exports of one composition on an
 opaque black background rather than on transparency, cut by `scripts/slice_assets.py` into
-fourteen sprites and one bitmask. 511 KiB of sliced art, 283 KiB of which is the pouch, plus
-237 KiB of sources that ship for re-cutting but are never loaded — 748 KiB of `assets/` in
-total, of which the game loads 511 KiB. Nothing is fetched at runtime and there is no API key;
-a missing file costs you that one picture rather than the room.
+fourteen sprites and one bitmask. 479 KiB of sliced art, 245 KiB of which is the pouch, plus
+237 KiB of sources that ship for re-cutting but are never loaded — 716 KiB of `assets/` in
+total, of which the game loads 479 KiB. Nothing is fetched at
+runtime and there is no API key; a missing file costs you that one picture rather than the
+room.
 
 The sky is not an asset. It is a CSS gradient with three fixed layers of radial-gradient stars
 twinkling on separate clocks, driven by two custom properties the game writes as the hand
@@ -125,40 +126,20 @@ something the game loads:
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install Pillow
-.venv/bin/python games/maskutchi-bag-charm/scripts/slice_assets.py --report   # inspect
+.venv/bin/python games/maskutchi-bag-charm/scripts/slice_assets.py --report   # check
 .venv/bin/python games/maskutchi-bag-charm/scripts/slice_assets.py            # write
-.venv/bin/python games/maskutchi-bag-charm/scripts/slice_assets.py --halo     # check the edges
 ```
 
-Everything the script does follows from one fact about that black background: a pixel the
-artist covered a fraction of the way is stored as *that fraction times its colour*, because
-black adds nothing to what it is mixed with. Every file is therefore already premultiplied by
-its own coverage, which means:
+Three things the script has to do, all of them consequences of the black background:
 
-- **Coverage can be read straight off the file** rather than guessed at with a blur. A boundary
-  pixel's brightness over the brightness of the paint behind it is the coverage the artist's
-  renderer used. The walk that finds "the paint behind it" only ever goes inwards, which is
-  what keeps a thin bright detail — the wire foot of the parfait glass — from being measured
-  against something brighter nearby and dissolving.
-- **Nothing is divided back out until the very end.** Premultiplied colour is the form that
-  survives a crop and a downscale, so the sprite stays that way until the last step. Skipping
-  that division is the black-matte fringe: the edge keeps a colour with black mixed into it and
-  reads as a dark rim on a pale sky.
-- **Downscale with bilinear, not the sharper lanczos.** Lanczos rings, and ringing on a
-  premultiplied edge is not a soft overshoot but a pixel whose colour has come loose from its
-  coverage — it lands as coloured speckle all along the outline.
 - **Flood the black field inward from the border** and key it out, then crop to what is left.
-- **Punch out the enclosed black regions**, because in this art every one of them is a hole the
-  background is showing through — the donut's centre, the links of a ball chain, the gap under
-  the parfait's glass foot — rather than something painted dark.
+- **Punch out the enclosed black regions**, because in this art every one of them is a hole
+  the background is showing through — the donut's centre, the links of a ball chain, the gap
+  under the parfait's glass foot — rather than something painted dark.
 - **Except in the pouch**, where the enclosed interior is the vinyl itself and becomes a faint
   `(214, 238, 255)` tint at 20% alpha, and the shine strokes along its edge become white at
   35%. That tint is what makes the pouch read as clear plastic instead of as a hole, and the
   miniatures are drawn under it so they genuinely show through.
-
-`--halo` is the regression test for all of that: it puts each sprite's soft edge next to the
-body it belongs to and prints the difference. It ran at −180 on the pale sprites before the
-premultiplied pass and the black rim was plainly visible on the sky.
 
 The interior is also written out as `assets/pouch-inside.json`, a 64×96 bitmask, so the game
 can tell whether a dropped miniature landed in the pouch. The pouch hangs at an angle, so no
