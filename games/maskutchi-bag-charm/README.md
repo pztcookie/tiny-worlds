@@ -51,7 +51,9 @@ The falling star is the only protection the world hands out unasked. The other o
 find.
 
 Each miniature also has a way it wants to be carried. The gestures are a small set, reused, so
-finding one teaches the others. A rushed hand gets a bunny line, not a warning banner.
+finding one teaches the others. The glowing one *does* the gesture — a pulse, a jiggle, a
+spinning sparkle ring, a filling hold-ring, a vertical tick, a double blink — and the bunny
+names it on the first wriggle. A rushed hand gets a bunny line and a jumpy sky.
 
 ## The secret
 
@@ -90,15 +92,18 @@ How each one wants to be carried:
 ## If you get stuck
 
 There is no fail state, so stuck is the only failure, and the timer means it has to be caught
-fast. The world nudges when you go quiet for seven seconds, and also when the beat notices its
-own rules emptying the pouch out from under you. Wordless first — the charms flare, a glowing
-parcel hops, the bunny leans toward the mystery (or toward whatever is fading) and then hops
-toward the pouch mouth — and only then does the bunny murmur, then the paper tag, climbing to
-nearly explicit for *one* gesture so the rest can be generalised. Every bunny-secret rung
-retires once the bunny is inside.
+fast. The world nudges when you go quiet, and also when the beat notices its own rules emptying
+the pouch. Wordless first — the charms flare, a glowing miniature *performs* how it wants to be
+carried, the bunny leans toward it — and the bunny names the action on the first refuse
+(*give it a little shake*, *this one likes a still hand*). Almost-getting-it shivers then
+settles, and the bunny confirms (*slower*, *that's the shake*). On spark pace that happens in a
+few seconds of struggling, not twenty.
 
-The ending never depends on the secret, and it never depends on opening every parcel. A pouch
-without the bunny still gets a zip, a shop name, a reflection and a card.
+If the same miniature has been named and still wriggled out twice, the third drop lets it in:
+*alright — in you go*. That still counts as finding it.
+
+The ending never depends on the secret, on opening every parcel, or on the dessert button. A
+pouch without the bunny still gets a zip, a shop name, a reflection and a card.
 
 ## Ways to play, none of them correct
 
@@ -126,7 +131,15 @@ arrangement, zipped, in the weather your own hand produced, stamped with that sh
 that includes the shop name. Elsewhere, *keep it* still downloads the picture, and *copy the
 link* (or the share button's fallback) puts
 `https://pztcookie.github.io/tiny-worlds/games/maskutchi-bag-charm/` on the clipboard so a
-friend can play. No backend, no accounts, no API key; copy-link is just the clipboard.
+friend can play.
+
+**Turn it into a dessert.** An upgrade on the card screen, never required to finish. With a
+studio key in `localStorage` (`tiny-worlds:maskutchi-bag-charm:flux-key`, or the arcade-wide
+`tiny-worlds:flux-key`) it POSTs to Black Forest Labs Flux over HTTPS (`flux-schnell`, then
+`flux-2-klein-4b`, then `flux-pro-1.1`), polls `/v1/get_result`, and paints the image onto the
+card. Paste a key via *use a studio key* — only on this screen, never on the first one. No key,
+no network, or an API error: the button still draws a hand-drawn pastel tart on canvas from the
+sprites they packed. Offline except the Flux call. No key is committed.
 
 The trace is kept in `localStorage` under `tiny-worlds:maskutchi-bag-charm:trace`.
 
@@ -141,7 +154,7 @@ The trace is kept in `localStorage` under `tiny-worlds:maskutchi-bag-charm:trace
 | Secret | The bunny can go in, and nothing resting near it duplicates or fades. Three parcels are a playful layer on top, not a second secret |
 | Trace | `madeRoomFor`, `pulledBackOut`, `tempo`, `copiesKept`, `bunnyInside`, plus `packagesOpened`, `gesturesFound`, `rushCount` for the shop name |
 | Transformation | Empty outline → a zipped pouch holding one specific arrangement, swinging in the weather the player's own tempo produced, stamped with a shop name |
-| Take-home | A PNG of that pouch with exactly their contents, the craftsman name, a share action, and one line about what they made room for |
+| Take-home | A PNG of that pouch with exactly their contents, the craftsman name, a share action, and an optional dessert (Flux upgrade or a local canvas tart) |
 
 ## Assets
 

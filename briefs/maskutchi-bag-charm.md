@@ -71,7 +71,10 @@ stating it.*
 
 - [x] Browser-based, opens with a static file server, no build step
 - [x] Dependencies minimal — vanilla HTML / CSS / JS
-- [ ] LLM / image API available — **no.** Scripted and emergent intelligence only, fully offline
+- [x] LLM / image API available — **optional upgrade.** The game is complete offline. A
+      "turn it into a dessert" button on the take-home card may call Black Forest Labs Flux
+      if a key is in localStorage; otherwise it draws a pastel dessert on canvas. The key is
+      never committed.
 - [x] Must work on mobile / touch
 - [x] Other: the player picks a length of time at the start, diegetically, as the world's pace
       rather than as a difficulty menu. Running out of time is never a loss — the zip simply
@@ -91,7 +94,7 @@ stating it.*
 | Traces | Original five: `madeRoomFor`, `pulledBackOut`, `tempo`, `copiesKept`, `bunnyInside`. Beside them, for the shop name only: `packagesOpened`, `gesturesFound`, `rushCount` |
 | Reflection | Counts what they actually did, never what they are — how many times they went back for the same fading thing, how many copies they let stand, how many they evicted, how they carried things. Closes on what the pouch kept because they decided it should. The craftsman name is a shop title built from those traces, not a diagnosis |
 | Transformation | Empty glowing outline → a closed pouch full of one specific arrangement, swinging on the strap, in the weather the player's own tempo produced, stamped with a shop name the session earned |
-| Take-home artifact | A downloadable PNG of the zipped pouch plus the craftsman name. Share uses the Web Share API with that PNG when the phone allows it; otherwise keep-it still downloads, and copy-link puts the public game URL on the clipboard |
+| Take-home artifact | A downloadable PNG of the zipped pouch plus the craftsman name. Share uses the Web Share API with that PNG when the phone allows it; otherwise keep-it still downloads, and copy-link puts the public game URL on the clipboard. An extra button, *turn it into a dessert*, is an upgrade: Flux if a studio key is stored locally, otherwise a canvas tart made of their packed sprites |
 
 ### The pace charms
 
@@ -153,7 +156,14 @@ nine (and the bunny) show their personality by how they refuse. The existing cre
 `blindbag` miniature is already a toy of a bag; it is not wrapped, so the two ideas do not collide.
 
 Glow is one-at-a-time, lilac `(220, 206, 255)`, on the next mystery — a just-refused item if
-there is one, otherwise the next sealed parcel. It retires when that one unlocks.
+there is one, otherwise the next sealed parcel. The glow is not the only signal: the item
+itself performs the gesture. Slow items pulse. Shake items jiggle. Spin items grow a rotating
+sparkle ring. Hold items fill a tiny ring while pressed. Upright items show a vertical tick.
+Tap-twice items blink twice. The bunny names the action on the first refuse, not the third.
+
+**Mercy unlock.** After the bunny has named a miniature's gesture, three failed drops into the
+pouch on that same item and it comes around — *alright — in you go*. It still counts as found.
+A stuck player is never trapped. The ending still does not depend on finding every gesture.
 
 ### Anti-stuck rules
 
@@ -167,12 +177,16 @@ caught fast.
 3. **The bunny-secret ladder ends nearly explicit.** Wordless first, then on the tag: "…" →
    *"the bunny isn't worried"* → *"nothing next to the bunny has ever disappeared."* Each rung
    retires once the player puts the bunny in.
-4. **Gesture teaching, same ladder, on spark pace within ~15–20 seconds.** Wordless glow → bunny
-   murmur → one nearly-explicit line for the *current* glowing item's gesture, then the player
-   generalises. Near-misses shiver. A rushed hand gets a bunny line, not a UI warning.
-5. **The ending never depends on the secret, nor on opening every parcel.** The zip closes on
-   time or on demand either way. A player who never unwraps still gets a craftsman name, a card,
-   and a share.
+4. **Gesture teaching is on the item, and it is fast.** The glowing miniature performs its
+   gesture. Bunny lines name the action on first refuse (*give it a little shake*, *this one
+   likes a still hand*). Near-misses shiver then settle, and the bunny confirms the direction
+   (*slower*, *that's the shake*). On spark pace the explicit line arrives in a few seconds of
+   struggling, not twenty. A rushed hand gets a bunny line and a jumpy sky.
+5. **Mercy unlock after three named refuses on the same item.** The pouch still has a will;
+   it just stops trapping people.
+6. **The ending never depends on the secret, nor on opening every parcel, nor on Flux.** The
+   zip closes on time or on demand. A player who never unwraps still gets a craftsman name, a
+   card, and a share. The dessert button is extra.
 
 ### Craftsman names
 
@@ -253,3 +267,13 @@ eventually do, and the wrap splitting is the "ohhh" that makes the other five wo
 and parcels; suffix from copies, going-back, pulling-out. *Rush Ribbon Binder* and *Slow Star
 Keeper* fall out of that table rather than from a mood. The share line is the same name plus
 the public game URL, so the commercial beat does not need a backend.
+
+**If the signal is only text, the game is too hard.** Bunny lines that wait twenty seconds
+read as coy, not mysterious. Putting the gesture on the miniature — a jiggle, a filling ring,
+a vertical tick, a double blink — is what made the layer learnable. Naming the action on the
+first refuse, and letting a named item in after three tries, is the same anti-stuck rule as
+the bunny hop: stuck is the only failure, so the world has to catch it fast.
+
+**Generative dessert is an upgrade or it is a second game.** The zip already happened. Flux
+is a button on the card, a key in localStorage, and a canvas tart if the network is off or
+the key is missing. The pouch they packed is still the thing they keep.

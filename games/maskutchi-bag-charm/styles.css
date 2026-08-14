@@ -523,6 +523,61 @@ button {
   gap: 10px;
 }
 
+#studio {
+  margin: 0;
+}
+
+button.quiet {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink-dim);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+#studio-panel {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  max-width: 42ch;
+}
+
+#studio-panel[hidden] {
+  display: none;
+}
+
+#flux-key {
+  font: inherit;
+  font-size: 12px;
+  padding: 8px 12px;
+  border: 1px solid rgb(56 71 122 / 0.3);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.7);
+  color: var(--ink);
+  min-width: 22ch;
+}
+
+#studio-save {
+  padding: 8px 17px;
+  border: 1px solid rgb(56 71 122 / 0.3);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.5);
+  cursor: pointer;
+}
+
+html.rushing #sky {
+  scale: 1 2.4;
+}
+
+html.rushing #world::before {
+  scale: 1 1.8;
+}
+
 /* The tag is sized in characters, so it is the one thing that has to shrink with the frame
    rather than scaling with it — which means on a small frame it takes up a bigger share of
    the sky and has to be slid left, or it hangs over the pouch's mouth. */

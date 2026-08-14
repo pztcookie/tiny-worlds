@@ -322,34 +322,40 @@ const TEACH = { hold: 0, slow: 1, "tap-twice": 2, shake: 3, upright: 4, spin: 5 
 
 const WANT = {
   slow: {
-    murmur: "quieter with that one",
-    explicit: "carry it as if it could spill.",
-    refuse: "too quick for that one",
+    murmur: "this one likes a still hand",
+    explicit: "this one likes a still hand",
+    refuse: "too quick — slower",
+    almost: "slower",
   },
   shake: {
-    murmur: "wake it up a bit",
-    explicit: "give it a little shake while you hold it.",
+    murmur: "give it a little shake",
+    explicit: "give it a little shake",
     refuse: "it wanted a jiggle",
+    almost: "that's the shake",
   },
   spin: {
-    murmur: "it wants to turn",
-    explicit: "spin it once, then it will come.",
+    murmur: "turn it over",
+    explicit: "turn it over once",
     refuse: "it didn't get to turn",
+    almost: "that's the turn",
   },
   "tap-twice": {
-    murmur: "twice, maybe",
-    explicit: "tap it twice, then pick it up.",
+    murmur: "tap it twice",
+    explicit: "tap it twice, then pick it up",
     refuse: "one tap wasn't enough",
+    almost: "once more",
   },
   hold: {
-    murmur: "it likes a moment first",
-    explicit: "hold still a beat before you move.",
+    murmur: "hold still a beat",
+    explicit: "hold still a beat before you move",
     refuse: "it wanted a moment first",
+    almost: "that's it — stay",
   },
   upright: {
     murmur: "don't tip it",
-    explicit: "keep it standing while you walk it over.",
+    explicit: "don't tip it — keep it standing",
     refuse: "it nearly spilled",
+    almost: "keep it standing",
   },
 };
 
@@ -409,7 +415,7 @@ const Carry = {
 
     if (dist > 14) {
       this.still = false;
-      if (now - this.born < 520) this.rushedHold = true;
+      if (now - this.born < 400) this.rushedHold = true;
     }
 
     const vx = dx / dt;
@@ -475,11 +481,11 @@ const Carry = {
     if (!it || it.unlocked) return false;
     const g = it.gesture;
     if (g === "tap-twice") return !!it.primed;
-    if (g === "hold") return this.still && clock - this.born > 520 && !this.rushedHold;
-    if (g === "slow") return this.dist > 48 && this.avg() < 280 && this.maxSpeed < 520;
-    if (g === "shake") return this.reversals >= 4 && this.dist > 40;
-    if (g === "spin") return Math.abs(this.wind) > 4.2 && this.spinRadius() > 22;
-    if (g === "upright") return this.dist > 70 && this.maxTilt < 0.22;
+    if (g === "hold") return this.still && clock - this.born > 400 && !this.rushedHold;
+    if (g === "slow") return this.dist > 40 && this.avg() < 340 && this.maxSpeed < 620;
+    if (g === "shake") return this.reversals >= 3 && this.dist > 28;
+    if (g === "spin") return Math.abs(this.wind) > 3.4 && this.spinRadius() > 18;
+    if (g === "upright") return this.dist > 50 && this.maxTilt < 0.32;
     return false;
   },
 
@@ -487,11 +493,11 @@ const Carry = {
     const it = this.it;
     if (!it || it.unlocked) return false;
     const g = it.gesture;
-    if (g === "slow") return this.dist > 36 && this.avg() < 420 && this.maxSpeed < 720;
-    if (g === "shake") return this.reversals >= 2;
-    if (g === "spin") return Math.abs(this.wind) > 2.4 && this.spinRadius() > 16;
-    if (g === "upright") return this.dist > 50 && this.maxTilt < 0.42;
-    if (g === "hold") return this.still && clock - this.born > 300 && !this.rushedHold;
+    if (g === "slow") return this.dist > 28 && this.avg() < 480;
+    if (g === "shake") return this.reversals >= 1;
+    if (g === "spin") return Math.abs(this.wind) > 1.8 && this.spinRadius() > 12;
+    if (g === "upright") return this.dist > 36 && this.maxTilt < 0.5;
+    if (g === "hold") return this.still && clock - this.born > 240 && !this.rushedHold;
     return false;
   },
 
@@ -502,9 +508,14 @@ const Carry = {
       unlock(it);
       return;
     }
-    if (this.almost() && clock - this.nearShiver > 380) {
+    if (this.almost() && clock - this.nearShiver > 520) {
       this.nearShiver = clock;
       it.shiver = clock;
+      const want = WANT[it.gesture];
+      if (want && clock - (this.nearSaid || 0) > 1800) {
+        this.nearSaid = clock;
+        whisper(want.almost);
+      }
     }
   },
 
@@ -523,9 +534,11 @@ const Carry = {
 let rushSaid = 0;
 function maybeRush(now) {
   if (!held || game.over || game.zipped) return;
-  if (weather.tempo < 0.68 || now - rushSaid < 8200) return;
+  if (weather.tempo < 0.62 || now - rushSaid < 7000) return;
   rushSaid = now;
   Trace.state.rushCount += 1;
+  document.documentElement.classList.add("rushing");
+  setTimeout(() => document.documentElement.classList.remove("rushing"), 1600);
   const lines = ["easy — the stars are streaking", "not so fast", "slow down a little"];
   whisper(lines[Trace.state.rushCount % lines.length]);
 }
@@ -565,16 +578,25 @@ function unlock(it) {
 }
 
 function refuse(it) {
+  it.fails = (it.fails || 0) + 1;
   it.failed = clock;
   it.shiver = clock;
+  it.named = true;
   Trace.refused += 1;
-  sparkle(it.x, it.y, "#e4d6ff", 9);
 
   const want = WANT[it.gesture];
-  const n = Trace.refused;
-  if (n <= 1) whisper(it.wrapped ? "still wrapped" : "it wriggled out");
-  else if (n === 2) whisper(want ? want.refuse : "not like that");
-  else whisper(want ? want.murmur : "it has its own way in");
+
+  // After the bunny has named this one's gesture, two more characterful refusals
+  // and it comes around — a stuck player is never trapped. Still counts as found.
+  if (it.fails >= 3) {
+    sparkle(it.x, it.y, "#dcc9ff", 12);
+    unlock(it);
+    whisper("alright — in you go");
+    return false;
+  }
+
+  sparkle(it.x, it.y, "#e4d6ff", 9);
+  whisper(want ? want.murmur : "it wriggled out");
   Hints.gestureNudge();
 
   it.inside = false;
@@ -585,6 +607,7 @@ function refuse(it) {
     const spot = spillSpot(it);
     it.flee = { x0: it.x, y0: it.y, x1: spot.x, y1: spot.y, born: clock };
   }
+  return true;
 }
 
 function takeUp(it, p) {
@@ -612,8 +635,8 @@ function putDown() {
   const inPouch = Inside.holds(it.x, it.y);
   if (inPouch && !it.unlocked) {
     Carry.end();
-    refuse(it);
-    return;
+    if (refuse(it)) return;
+    // Mercy unlock: the drop stands.
   }
 
   it.inside = inPouch;
@@ -1183,10 +1206,12 @@ function drawParcel(it, cx, cy, w, h, rot, alpha, split = 0) {
 }
 
 function drawMysteryGlow(it, y) {
-  const pulse = 0.55 + Math.sin(clock * 0.005 + it.id) * 0.28;
+  const rush = weather.tempo > 0.55;
+  const pulse = 0.55 + Math.sin(clock * (rush ? 0.014 : 0.005) + it.id) * 0.28;
   const r = Math.max(it.w, it.h) * (0.95 + pulse * 0.2);
   const glow = g.createRadialGradient(it.x, y, 0, it.x, y, r);
-  glow.addColorStop(0, `rgba(220, 206, 255, ${0.55 * pulse})`);
+  const inner = rush ? `rgba(186, 140, 255, ${0.7 * pulse})` : `rgba(220, 206, 255, ${0.55 * pulse})`;
+  glow.addColorStop(0, inner);
   glow.addColorStop(0.5, `rgba(186, 160, 255, ${0.28 * pulse})`);
   glow.addColorStop(1, "rgba(220, 206, 255, 0)");
   g.fillStyle = glow;
@@ -1196,11 +1221,61 @@ function drawMysteryGlow(it, y) {
   if ((clock + it.id * 80) % 900 < 120) spark(it.x + r * 0.35, y - r * 0.4, 5, "#efe6ff", pulse);
 }
 
+/** The cue IS the gesture, drawn on the glowing (or held-locked) miniature. */
+function drawGestureCue(it, x, y, w, h) {
+  const kind = it.gesture;
+  g.save();
+  g.translate(x, y);
+
+  if (kind === "spin") {
+    const a = clock * 0.0032;
+    const r = Math.max(w, h) * 0.72;
+    for (let i = 0; i < 5; i += 1) {
+      const ang = a + (i / 5) * Math.PI * 2;
+      spark(Math.cos(ang) * r, Math.sin(ang) * r, 4.2, "#efe6ff", 0.85);
+    }
+  }
+
+  if (kind === "hold") {
+    const wait = it.held && Carry.it === it && Carry.still ? Math.min(1, (clock - Carry.born) / 400) : 0.18 + 0.08 * Math.sin(clock * 0.004);
+    const r = Math.max(w, h) * 0.7;
+    g.strokeStyle = "rgba(168, 124, 255, 0.55)";
+    g.lineWidth = 2;
+    g.beginPath();
+    g.arc(0, 0, r, 0, Math.PI * 2);
+    g.stroke();
+    g.strokeStyle = "rgba(111, 79, 176, 0.95)";
+    g.lineWidth = 3.2;
+    g.beginPath();
+    g.arc(0, 0, r, -Math.PI / 2, -Math.PI / 2 + wait * Math.PI * 2);
+    g.stroke();
+  }
+
+  if (kind === "upright") {
+    const sway = Math.sin(clock * 0.003) * 1.2;
+    g.strokeStyle = "rgba(111, 79, 176, 0.85)";
+    g.lineWidth = 2.2;
+    g.lineCap = "round";
+    g.beginPath();
+    g.moveTo(sway, -h / 2 - 16);
+    g.lineTo(0, -h / 2 - 4);
+    g.stroke();
+    g.fillStyle = "rgba(111, 79, 176, 0.9)";
+    g.beginPath();
+    g.arc(sway, -h / 2 - 18, 2.4, 0, Math.PI * 2);
+    g.fill();
+  }
+
+  g.restore();
+}
+
 function drawItem(it) {
+  let x = it.x;
   let y = it.y;
   let rot = it.rot;
   let w = it.w;
   let h = it.h;
+  const cueing = !it.unlocked && (glowingNow === it || it.held);
 
   // Nothing moves until a charm is picked, so a miniature that is reached for early
   // hops in place instead. The charms flare at the same moment.
@@ -1211,16 +1286,35 @@ function drawItem(it) {
   }
 
   if (it.shiver) {
-    const t = (clock - it.shiver) / 340;
+    const t = (clock - it.shiver) / 520;
     if (t >= 1) it.shiver = 0;
     else {
-      y += Math.sin(t * Math.PI * 6) * 3.5 * (1 - t);
-      rot += Math.sin(t * Math.PI * 8) * 0.12 * (1 - t);
+      const damp = (1 - t) * (1 - t);
+      y += Math.sin(t * Math.PI * 5) * 3.2 * damp;
+      rot += Math.sin(t * Math.PI * 6) * 0.1 * damp;
+    }
+  }
+
+  if (cueing && it.gesture === "slow") {
+    const breathe = 1 + Math.sin(clock * 0.0032 + it.id) * 0.07;
+    w *= breathe;
+    h *= breathe;
+  }
+  if (cueing && it.gesture === "shake" && !it.held) {
+    x += Math.sin(clock * 0.022 + it.id) * 3.4;
+    rot += Math.sin(clock * 0.028 + it.id) * 0.08;
+  }
+  if (cueing && it.gesture === "tap-twice" && !it.held) {
+    const cycle = (clock + it.id * 40) % 1100;
+    const blink = (cycle > 80 && cycle < 200) || (cycle > 280 && cycle < 400);
+    if (blink) {
+      w *= 1.12;
+      h *= 1.12;
     }
   }
 
   if (it.held && it.gesture === "hold" && Carry.it === it && Carry.still && !it.unlocked) {
-    const wait = Math.min(1, (clock - Carry.born) / 520);
+    const wait = Math.min(1, (clock - Carry.born) / 400);
     w *= 1 + wait * 0.06;
     h *= 1 + wait * 0.06;
   }
@@ -1267,15 +1361,17 @@ function drawItem(it) {
   }
 
   if (it.wrapped && !unwrapping) {
-    drawParcel(it, it.x, y, w, h, rot, 1);
+    drawParcel(it, x, y, w, h, rot, 1);
   } else if (unwrapping && unwrapping < 1) {
-    drawParcel(it, it.x, y, w, h, rot, 1, unwrapping);
-    paste(KINDS[it.kind].art, it.x, y, w, h, rot, unwrapping);
+    drawParcel(it, x, y, w, h, rot, 1, unwrapping);
+    paste(KINDS[it.kind].art, x, y, w, h, rot, unwrapping);
   } else {
-    paste(KINDS[it.kind].art, it.x, y, w, h, rot, 1 - it.fade * 0.62);
+    paste(KINDS[it.kind].art, x, y, w, h, rot, 1 - it.fade * 0.62);
   }
 
   if (it.held) g.restore();
+
+  if (cueing) drawGestureCue(it, x, y, w, h);
 
   if (it.starred) spark(it.x + it.w * 0.4, y - it.h * 0.38, 5, "#ffe89a");
 }
@@ -1503,7 +1599,7 @@ function whisper(text) {
  * the tag climbs to nearly explicit rather than staying coy.
  */
 const Hints = {
-  idleMs: 7000,
+  idleMs: 3800,
   _timer: null,
   _retired: new Set(),
   _level: {},
@@ -1514,11 +1610,12 @@ const Hints = {
 
   wake() {
     clearTimeout(this._timer);
-    this._timer = setTimeout(() => this.offer(), this.idleMs);
+    const ms = !game.pace ? 7000 : game.pace.beat < 1000 ? 2400 : 3800;
+    this._timer = setTimeout(() => this.offer(), ms);
   },
 
   teachMs() {
-    return game.pace ? Math.min(20000, game.pace.beat * 18) : 20000;
+    return game.pace ? Math.min(8000, game.pace.beat * 7) : 8000;
   },
 
   candidates() {
@@ -1575,15 +1672,11 @@ const Hints = {
   },
 
   gestureNudge() {
-    if (Trace.state.gesturesFound) return;
     const it = glowTarget();
     if (it) it.nudge = clock;
-    const elapsed = clock - (game.started || clock);
-    if (Trace.refused >= 3 || elapsed > this.teachMs() * 0.65) {
-      if ((this._level.gesture ?? -1) < 2 && it && WANT[it.gesture]) {
-        this._level.gesture = 2;
-        this.say(WANT[it.gesture].explicit);
-      }
+    if (it && WANT[it.gesture] && (this._level.gesture ?? -1) < 1) {
+      this._level.gesture = 1;
+      this.say(WANT[it.gesture].explicit);
     }
   },
 
@@ -1592,24 +1685,18 @@ const Hints = {
     if (!it) return;
     this._lastGestureHint = clock;
     it.nudge = clock;
-    const level = (this._level.gesture = Math.min(2, (this._level.gesture ?? -1) + 1));
     const want = WANT[it.gesture];
-    if (level === 0) {
-      whisper(it.wrapped ? "something's in that parcel" : "that one has its own way in");
-      return;
-    }
-    if (level === 1) {
-      whisper(want ? want.murmur : "it has its own way in");
-      return;
-    }
-    if (want) this.say(want.explicit);
+    if (!want) return;
+    const level = (this._level.gesture = Math.min(1, (this._level.gesture ?? -1) + 1));
+    if (level === 0) whisper(want.murmur);
+    else this.say(want.explicit);
   },
 
   /** Called every beat, so the world can watch what its own rules are doing. Busy is not
    *  the same as unstuck: the pouch emptying itself is a stall even if the hand is moving. */
   notice() {
-    if (Trace.state.gesturesFound === 0 && game.started && clock - game.started > this.teachMs()) {
-      if ((this._level.gesture ?? -1) < 2 && clock - (this._lastGestureHint || 0) > 4200) {
+    if (Trace.state.gesturesFound === 0 && game.started && clock - game.started > this.teachMs() * 0.45) {
+      if ((this._level.gesture ?? -1) < 1 && clock - (this._lastGestureHint || 0) > 2200) {
         this._lastGestureHint = clock;
         this.gestureHint();
       }
@@ -1810,6 +1897,13 @@ function finish() {
   document.getElementById("world").hidden = true;
   document.getElementById("reveal").hidden = false;
   clearTimeout(Hints._timer);
+  lastSaid = said;
+  cardKind = "pouch";
+  dessertBusy = false;
+  const dessertBtn = document.getElementById("dessert");
+  dessertBtn.textContent = "turn it into a dessert";
+  dessertBtn.disabled = false;
+  document.getElementById("studio-open").textContent = fluxKey() ? "studio key saved here" : "use a studio key";
   readyShare(said);
 }
 
@@ -1817,7 +1911,7 @@ const SHARE_URL = "https://pztcookie.github.io/tiny-worlds/games/maskutchi-bag-c
 
 function downloadCard() {
   const a = document.createElement("a");
-  a.download = `${CONFIG.slug}.png`;
+  a.download = cardKind === "dessert" ? `${CONFIG.slug}-dessert.png` : `${CONFIG.slug}.png`;
   a.href = document.getElementById("card").toDataURL("image/png");
   a.click();
 }
@@ -1897,6 +1991,253 @@ async function shareCard() {
   copyLink();
 }
 
+let lastSaid = null;
+let cardKind = "pouch";
+let dessertBusy = false;
+
+function fluxKey() {
+  try {
+    return (
+      localStorage.getItem(KEY("flux-key")) || localStorage.getItem("tiny-worlds:flux-key") || ""
+    ).trim();
+  } catch {
+    return "";
+  }
+}
+
+function saveFluxKey(value) {
+  const key = value.trim();
+  try {
+    if (key) {
+      localStorage.setItem(KEY("flux-key"), key);
+      localStorage.setItem("tiny-worlds:flux-key", key);
+    } else {
+      localStorage.removeItem(KEY("flux-key"));
+    }
+  } catch {
+    /* private browsing */
+  }
+}
+
+function dessertPrompt(said) {
+  const inside = packed();
+  const names = [];
+  const seen = new Set();
+  for (const it of inside) {
+    if (seen.has(it.kind)) continue;
+    seen.add(it.kind);
+    names.push(KINDS[it.kind].name.replace(/^the /, ""));
+  }
+  const filling = names.length ? names.slice(0, 8).join(", ") : "an empty cream tart, waiting";
+  return [
+    "Hand-drawn pastel dessert sticker, collectable bag-charm quality.",
+    "Soft colored pencil and marker, sticker-flat line work, Y2K Japanese kawaii.",
+    "Grape and blueberry purples against milk blue, cream paper, lilac.",
+    `A cute plated tart or parfait made of: ${filling}.`,
+    `Tiny shop stamp reading "${said.shop}".`,
+    "No other text, no watermark, no logo, no UI.",
+    "White margin like a die-cut charm, portrait collectable card.",
+  ].join(" ");
+}
+
+/** Local fallback: their miniatures become toppings on a hand-drawn pastel tart. */
+function drawDessertCard(said) {
+  const c = document.getElementById("card");
+  const k = c.getContext("2d");
+  const CW = c.width;
+  const CH = c.height;
+
+  k.fillStyle = "#f7efe0";
+  k.fillRect(0, 0, CW, CH);
+
+  const paper = k.createLinearGradient(0, 40, 0, CH - 80);
+  paper.addColorStop(0, "#dceeff");
+  paper.addColorStop(0.45, "#f3e4ff");
+  paper.addColorStop(1, "#ffe8d6");
+  k.fillStyle = paper;
+  k.beginPath();
+  k.roundRect ? k.roundRect(28, 48, CW - 56, CH - 160, 28) : k.rect(28, 48, CW - 56, CH - 160);
+  k.fill();
+
+  let seed = 20260812 + packed().length * 17;
+  const rnd = () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
+  for (let i = 0; i < 18; i += 1) {
+    const x = 50 + rnd() * (CW - 100);
+    const y = 70 + rnd() * 220;
+    const r = 2 + rnd() * 4;
+    k.fillStyle = rnd() > 0.6 ? "#fff0bd" : "#ffffff";
+    k.globalAlpha = 0.55;
+    k.beginPath();
+    k.moveTo(x, y - r);
+    k.quadraticCurveTo(x, y, x + r, y);
+    k.quadraticCurveTo(x, y, x, y + r);
+    k.quadraticCurveTo(x, y, x - r, y);
+    k.quadraticCurveTo(x, y, x, y - r);
+    k.fill();
+  }
+  k.globalAlpha = 1;
+
+  const cx = CW / 2;
+  const cy = 390;
+  k.fillStyle = "rgba(56, 71, 122, 0.12)";
+  k.beginPath();
+  k.ellipse(cx + 8, cy + 86, 168, 28, 0, 0, Math.PI * 2);
+  k.fill();
+
+  k.fillStyle = "#f4d9b0";
+  k.strokeStyle = "#c9a57a";
+  k.lineWidth = 3;
+  k.beginPath();
+  k.ellipse(cx, cy + 38, 170, 58, 0, 0, Math.PI * 2);
+  k.fill();
+  k.stroke();
+
+  k.fillStyle = "#fff6ea";
+  k.beginPath();
+  k.ellipse(cx, cy + 18, 148, 46, 0, 0, Math.PI * 2);
+  k.fill();
+
+  k.fillStyle = "#e8d4f5";
+  k.beginPath();
+  k.ellipse(cx, cy - 8, 132, 78, 0, 0, Math.PI * 2);
+  k.fill();
+  k.strokeStyle = "rgba(111, 79, 176, 0.35)";
+  k.lineWidth = 2;
+  k.stroke();
+
+  k.fillStyle = "#fff8f0";
+  k.beginPath();
+  k.ellipse(cx, cy - 36, 108, 36, 0, 0, Math.PI * 2);
+  k.fill();
+
+  const toppings = packed().filter((it, i, all) => all.findIndex((o) => o.kind === it.kind) === i).slice(0, 8);
+  toppings.forEach((it, i) => {
+    const n = Math.max(toppings.length, 1);
+    const ang = -Math.PI / 2 + (i / n) * Math.PI * 2;
+    const rad = 42 + (n > 4 ? 18 : 8);
+    const img = ART.get(KINDS[it.kind].art);
+    if (!img) return;
+    const tw = Math.min(72, it.w * 1.15);
+    const th = (tw * img.height) / img.width;
+    k.save();
+    k.translate(cx + Math.cos(ang) * rad, cy - 28 + Math.sin(ang) * rad * 0.55);
+    k.rotate(ang * 0.15);
+    k.drawImage(img, -tw / 2, -th / 2, tw, th);
+    k.restore();
+  });
+
+  k.fillStyle = "#7a6aa8";
+  k.font = "11px ui-monospace, Menlo, monospace";
+  k.textAlign = "center";
+  k.fillText("a dessert from this pouch", CW / 2, 92);
+
+  k.fillStyle = "#38477a";
+  k.font = "13px ui-monospace, Menlo, monospace";
+  k.fillText("packed by", CW / 2, CH - 78);
+  k.font = "20px ui-monospace, Menlo, monospace";
+  k.fillText(said.shop, CW / 2, CH - 52);
+}
+
+function stampShop(k, CW, CH, said) {
+  k.fillStyle = "rgba(247, 239, 224, 0.92)";
+  k.fillRect(0, CH - 110, CW, 110);
+  k.fillStyle = "#38477a";
+  k.textAlign = "center";
+  k.font = "13px ui-monospace, Menlo, monospace";
+  k.fillText("packed by", CW / 2, CH - 68);
+  k.font = "20px ui-monospace, Menlo, monospace";
+  k.fillText(said.shop, CW / 2, CH - 42);
+}
+
+async function paintRemoteDessert(url, said) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("image fetch failed");
+  const blob = await res.blob();
+  const bmp = await createImageBitmap(blob);
+  const c = document.getElementById("card");
+  const k = c.getContext("2d");
+  k.drawImage(bmp, 0, 0, c.width, c.height);
+  stampShop(k, c.width, c.height, said);
+}
+
+async function pollFlux(pollingUrl, key, id) {
+  const started = Date.now();
+  let delay = 800;
+  while (Date.now() - started < 90000) {
+    await new Promise((r) => setTimeout(r, delay));
+    const url = pollingUrl || `https://api.bfl.ai/v1/get_result?id=${encodeURIComponent(id)}`;
+    const res = await fetch(url, { headers: { accept: "application/json", "x-key": key } });
+    if (!res.ok) throw new Error("poll failed");
+    const data = await res.json();
+    if (data.status === "Ready" && data.result && data.result.sample) return data.result.sample;
+    if (data.status === "Error" || data.status === "Failed" || data.status === "Request Moderated") {
+      throw new Error(data.error || data.status);
+    }
+    delay = Math.min(delay * 1.4, 4000);
+  }
+  throw new Error("timed out");
+}
+
+async function requestFlux(said) {
+  const key = fluxKey();
+  if (!key) return null;
+  const body = JSON.stringify({
+    prompt: dessertPrompt(said),
+    width: 768,
+    height: 1024,
+    output_format: "png",
+  });
+  const headers = { accept: "application/json", "Content-Type": "application/json", "x-key": key };
+  const posts = [
+    "https://api.bfl.ai/v1/flux-schnell",
+    "https://api.bfl.ai/v1/flux-2-klein-4b",
+    "https://api.bfl.ai/v1/flux-pro-1.1",
+  ];
+  let lastErr = null;
+  for (const url of posts) {
+    try {
+      const res = await fetch(url, { method: "POST", headers, body });
+      if (res.status === 404) continue;
+      if (!res.ok) {
+        lastErr = new Error(`http ${res.status}`);
+        continue;
+      }
+      const data = await res.json();
+      const sample = await pollFlux(data.polling_url, key, data.id);
+      return sample;
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  if (lastErr) throw lastErr;
+  return null;
+}
+
+async function turnIntoDessert() {
+  if (dessertBusy || !lastSaid) return;
+  dessertBusy = true;
+  const btn = document.getElementById("dessert");
+  const prev = btn.textContent;
+  btn.textContent = "drawing…";
+  btn.disabled = true;
+  let usedStudio = false;
+  try {
+    const sample = await requestFlux(lastSaid);
+    if (sample) {
+      await paintRemoteDessert(sample, lastSaid);
+      usedStudio = true;
+    } else {
+      drawDessertCard(lastSaid);
+    }
+  } catch {
+    drawDessertCard(lastSaid);
+  }
+  cardKind = "dessert";
+  btn.textContent = usedStudio ? "a dessert from the studio" : "a dessert, drawn here";
+  btn.disabled = false;
+  dessertBusy = false;
+}
+
 /* ---------- wiring ---------- */
 
 document.getElementById("quest").textContent = CONFIG.quest;
@@ -1953,6 +2294,25 @@ document.getElementById("download").addEventListener("click", downloadCard);
 
 document.getElementById("share").addEventListener("click", () => {
   shareCard();
+});
+
+document.getElementById("dessert").addEventListener("click", () => {
+  turnIntoDessert();
+});
+
+document.getElementById("studio-open").addEventListener("click", () => {
+  document.getElementById("studio-panel").hidden = false;
+  document.getElementById("studio-open").hidden = true;
+  const input = document.getElementById("flux-key");
+  input.value = fluxKey();
+  input.focus();
+});
+
+document.getElementById("studio-save").addEventListener("click", () => {
+  saveFluxKey(document.getElementById("flux-key").value);
+  document.getElementById("studio-panel").hidden = true;
+  document.getElementById("studio-open").hidden = false;
+  document.getElementById("studio-open").textContent = fluxKey() ? "studio key saved here" : "use a studio key";
 });
 
 document.getElementById("again").addEventListener("click", () => {
