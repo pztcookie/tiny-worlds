@@ -83,15 +83,15 @@ stating it.*
 
 | Slot | Decision |
 |---|---|
-| World | One clear zip pouch on a bag strap, empty, hanging against a pastel blue sky of shining stars. Twelve miniatures spill beside it and the bunny sits outside on the strap |
+| World | One clear zip pouch on a bag strap, empty, hanging against a pastel blue sky of shining stars. Twelve miniatures spill beside it — three of them sealed as pastel parcels — and the bunny sits outside on the strap |
 | Quest (visible goal) | On the paper tag: *"fit your world in here before you get there."* Visible, and impossible to do tidily, because the pouch keeps editing itself |
-| Core loop (3–5 actions) | Drag a miniature in → watch the pouch agree or disagree with it → move things next to each other, or pull one back out → zip it shut when it looks like yours |
-| Personality (how the world misbehaves) | **Matching neighbours multiply, lone strangers fade.** A miniature sitting near another of its own colour family may be copied; one with no relative nearby fades in steps and then pops. On top of that: the faster your hand moves the deeper and jumpier the sky gets — stars streak, the strap swings, the pouch decides more often; move slowly and the blue warms toward cream, the stars settle into a slow twinkle, and one of them sometimes falls and protects whatever it lands on; at full speed the pouch occasionally spits something back out |
-| The one secret | **The bunny can go in.** Nothing says so — it starts outside on the strap. Anything resting near the bunny is exempt from both rules: it never duplicates and never fades. The hint is that the bunny is the only thing in the world that is alone and unafraid |
-| Traces (3–5 state variables) | `madeRoomFor` (items that faded at least once and were still there at the end), `pulledBackOut`, `tempo` (average hand speed), `copiesKept`, `bunnyInside` |
-| Reflection | Counts what they actually did, never what they are — how many times they went back for the same fading thing, how many copies they let stand, how many they evicted. Closes on what the pouch kept because they decided it should |
-| Transformation | Empty glowing outline → a closed pouch full of one specific arrangement, swinging on the strap, in the weather the player's own tempo produced |
-| Take-home artifact | A downloadable PNG: the zipped pouch with exactly their contents, plus one line about what they made room for |
+| Core loop (3–5 actions) | Find how a miniature wants to be carried → drop it in → watch the pouch agree or disagree → rearrange, or pull one back out → zip it shut when it looks like yours |
+| Personality (how the world misbehaves) | **Matching neighbours multiply, lone strangers fade** — unchanged. On top of that, each miniature has one way it wants to be carried, and until that gesture is found it wriggles out of the pouch. The faster your hand moves the deeper and jumpier the sky gets; at full speed the pouch spits things out and the bunny tells you to ease off. Move slowly and the blue warms, a star sometimes falls and protects whatever it lands on |
+| The one secret | **The bunny can go in.** Nothing says so — it starts outside on the strap. Anything resting near the bunny is exempt from both rules: it never duplicates and never fades. The hint is that the bunny is the only thing in the world that is alone and unafraid. Mystery parcels are a playful layer on top of this, not a second secret |
+| Traces | Original five: `madeRoomFor`, `pulledBackOut`, `tempo`, `copiesKept`, `bunnyInside`. Beside them, for the shop name only: `packagesOpened`, `gesturesFound`, `rushCount` |
+| Reflection | Counts what they actually did, never what they are — how many times they went back for the same fading thing, how many copies they let stand, how many they evicted, how they carried things. Closes on what the pouch kept because they decided it should. The craftsman name is a shop title built from those traces, not a diagnosis |
+| Transformation | Empty glowing outline → a closed pouch full of one specific arrangement, swinging on the strap, in the weather the player's own tempo produced, stamped with a shop name the session earned |
+| Take-home artifact | A downloadable PNG of the zipped pouch plus the craftsman name. Share uses the Web Share API with that PNG when the phone allows it; otherwise keep-it still downloads, and copy-link puts the public game URL on the clipboard |
 
 ### The pace charms
 
@@ -122,6 +122,38 @@ One mechanic, four legible styles, and the ending names the style rather than sc
 - Keep one of each and spend the whole time fighting the fade
 - Move slowly, keep the weather warm, and arrange something deliberate
 - Put the bunny in and let the strangers stay
+- Open the parcels, or never touch them — both pouches still get a shop name
+
+### How each miniature wants to be carried
+
+One small set of gestures, reused, so they are learnable rather than twelve minigames. Until the
+gesture is found, dropping the miniature in the pouch fails out loud — it wriggles, glows, the
+bunny comments. After that it settles, and the pouch's old rules take over.
+
+| Miniature | Gesture | Why |
+|---|---|---|
+| parfait | upright | a tall glass, would spill |
+| soda | upright | a bottle, same |
+| tiny star | shake | it wants to be woken |
+| blue candy | shake | flick the wrapper |
+| grape candy | shake | sticky, same flick |
+| cookie packet | spin | turn the packet over |
+| grape tart | spin | round, it wants a turn |
+| yakult | hold | sit with the little bottle a beat |
+| peanut butter | tap-twice | tap the lid |
+| blind bag | tap-twice | tap the bag |
+| blue pudding | slow | jelly, a quiet hand |
+| choco box | slow | a fancy box, carried gently |
+| the bunny | slow | the one that is not in a hurry |
+
+**Wrapped (blind-box), three only:** the star, the cookie packet, the yakult. A sealed pastel
+parcel using the existing cream/lilac language — canvas, not a new sprite sheet. Unwrapping is
+the "ohhh": the gesture splits the wrap, the miniature appears, then it can go in. The other
+nine (and the bunny) show their personality by how they refuse. The existing cream-family
+`blindbag` miniature is already a toy of a bag; it is not wrapped, so the two ideas do not collide.
+
+Glow is one-at-a-time, lilac `(220, 206, 255)`, on the next mystery — a just-refused item if
+there is one, otherwise the next sealed parcel. It retires when that one unlocks.
 
 ### Anti-stuck rules
 
@@ -130,13 +162,23 @@ caught fast.
 
 1. **Fading is never silent.** An item about to go pops with a sparkle and leaves a faint ring
    where it was, so the player sees the world acting rather than a bug.
-2. **The bunny points.** It leans toward the nearest fading item from outside the pouch, and on a
-   stall hops toward the pouch mouth.
-3. **The ladder ends nearly explicit.** Wordless first, then on the tag: "…" → *"the bunny isn't
-   worried"* → *"nothing next to the bunny has ever disappeared."* Each rung retires once the
-   player puts the bunny in.
-4. **The ending never depends on the secret.** The zip closes on time or on demand either way,
-   and every pouch gets a reflection and a card. The bunny only changes what is on it.
+2. **The bunny points.** It leans toward the glowing mystery, or toward the nearest fading item,
+   and on a stall hops toward the pouch mouth.
+3. **The bunny-secret ladder ends nearly explicit.** Wordless first, then on the tag: "…" →
+   *"the bunny isn't worried"* → *"nothing next to the bunny has ever disappeared."* Each rung
+   retires once the player puts the bunny in.
+4. **Gesture teaching, same ladder, on spark pace within ~15–20 seconds.** Wordless glow → bunny
+   murmur → one nearly-explicit line for the *current* glowing item's gesture, then the player
+   generalises. Near-misses shiver. A rushed hand gets a bunny line, not a UI warning.
+5. **The ending never depends on the secret, nor on opening every parcel.** The zip closes on
+   time or on demand either way. A player who never unwraps still gets a craftsman name, a card,
+   and a share.
+
+### Craftsman names
+
+A two- or three-word shop title from what they did, never who they are. Tokens such as Slow,
+Moonfold, Rush, Parcel, Star, Ribbon, Binder, Keeper, Folder, Packer. Shown on the card and in
+the share line. The word "craftsman" does not appear until that card.
 
 ## What was learned
 
