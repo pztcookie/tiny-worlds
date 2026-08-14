@@ -494,6 +494,14 @@ button {
   letter-spacing: 0.05em;
 }
 
+#reveal-shop {
+  margin: 0;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  color: var(--grape);
+}
+
 #reveal-body {
   margin: 0;
   max-width: 46ch;
@@ -510,6 +518,8 @@ button {
 
 .reveal-actions {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 10px;
 }
 

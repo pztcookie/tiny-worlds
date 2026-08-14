@@ -240,3 +240,16 @@ and it is the only version that can be tested headlessly at all.
 **Diegetic difficulty works, and it needs one honest clock.** Three charms on the keyring
 instead of a difficulty menu was the right call, but with no numbers anywhere the player has
 nothing to plan against. The strap's shadow creeping across the sky is the whole HUD.
+
+**One gesture set is the only way twelve personalities stay learnable.** The request was
+blind-box, per-item personality, bunny hints, rush-scolding, a craftsman name and a share
+button. Treated as six unfinished secrets that would have buried the pouch. Treated as one
+layer — how each miniature wants to be carried — it sits on top of multiply/fade without
+replacing them. Six gestures, reused; three parcels, not twelve; the original bunny secret
+untouched. Hold is taught first because a still hand is the one thing a rushed player will
+eventually do, and the wrap splitting is the "ohhh" that makes the other five worth hunting.
+
+**The shop name has to be built from traces, or it becomes a quiz.** Prefix from tempo, rush
+and parcels; suffix from copies, going-back, pulling-out. *Rush Ribbon Binder* and *Slow Star
+Keeper* fall out of that table rather than from a mood. The share line is the same name plus
+the public game URL, so the commercial beat does not need a backend.

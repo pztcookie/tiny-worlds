@@ -21,9 +21,13 @@ python3 -m http.server 8765   # then open http://127.0.0.1:8765
 1. Pick one of the three charms on the keyring. That starts the world and sets how long it
    gives you — three minutes, one and three quarters, or one. Nothing on screen says so; the
    strap's shadow creeping across the sky is the only clock.
-2. Drag a miniature into the pouch.
-3. Watch the pouch agree or disagree with it.
-4. Move things next to each other, or pull one back out.
+2. Three of the miniatures are sealed pastel parcels. The rest look like themselves, but each
+   one wants to be carried a certain way — slowly, shaken, spun, tapped twice, held still a
+   beat, or kept upright.
+3. Until that way is found, the pouch will not keep it. It wriggles out. The bunny comments.
+   A lilac glow marks the next mystery, one at a time.
+4. Once it settles, watch the pouch agree or disagree with it — matching neighbours multiply,
+   lone strangers fade.
 5. Zip it shut when it looks like yours, or let the time run out — which is the same thing,
    not a loss.
 
@@ -46,6 +50,9 @@ On top of that, the sky answers your hand:
 The falling star is the only protection the world hands out unasked. The other one you have to
 find.
 
+Each miniature also has a way it wants to be carried. The gestures are a small set, reused, so
+finding one teaches the others. A rushed hand gets a bunny line, not a warning banner.
+
 ## The secret
 
 <details>
@@ -61,20 +68,37 @@ the way you learn that is by noticing what the bunny is not afraid of.
 No fanfare, no win screen. The exemption showing up on whatever is resting nearby is the
 reward.
 
+The parcels are a playful layer on top of this, not a second secret. Three start wrapped —
+the tiny star, the cookie packet, the yakult. Unwrapping is the same gesture that lets them
+settle, and the wrap splits. The other nine (and the bunny) show their personality by how they
+refuse. You do not have to open every parcel; a pouch that never unwraps still gets a shop
+name, a card, and a share.
+
+How each one wants to be carried:
+
+| Gesture | Who |
+|---|---|
+| slow | pudding, choco box, bunny |
+| shake | tiny star, blue candy, grape candy |
+| spin | cookie packet, grape tart |
+| tap-twice | peanut butter, blind bag |
+| hold | yakult |
+| upright | parfait, soda |
+
 </details>
 
 ## If you get stuck
 
 There is no fail state, so stuck is the only failure, and the timer means it has to be caught
 fast. The world nudges when you go quiet for seven seconds, and also when the beat notices its
-own rules emptying the pouch out from under you. Wordless first — the charms flare, the
-miniature nearest the pouch hops, the bunny leans toward whatever is fading and then hops
-toward the pouch mouth — and only then does the paper tag speak, climbing `…` → *"the bunny
-isn't worried"* → *"nothing next to the bunny has ever disappeared."* Every rung retires for
-good once the bunny is inside.
+own rules emptying the pouch out from under you. Wordless first — the charms flare, a glowing
+parcel hops, the bunny leans toward the mystery (or toward whatever is fading) and then hops
+toward the pouch mouth — and only then does the bunny murmur, then the paper tag, climbing to
+nearly explicit for *one* gesture so the rest can be generalised. Every bunny-secret rung
+retires once the bunny is inside.
 
-The ending never depends on the secret. A pouch without the bunny still gets a zip, a
-reflection and a card; the bunny only changes what is on them.
+The ending never depends on the secret, and it never depends on opening every parcel. A pouch
+without the bunny still gets a zip, a shop name, a reflection and a card.
 
 ## Ways to play, none of them correct
 
@@ -82,30 +106,42 @@ reflection and a card; the bunny only changes what is on them.
 - Keep one of each and spend the whole minute fighting the fade
 - Move slowly, keep the sky warm, and arrange something deliberate
 - Put the bunny in and let the strangers stay
+- Open the parcels, or never touch them
 
 ## The take-home
 
 The ending counts what you did, never what you are: how many already-fading things you went
 back for, how many copies you let stand, how many you took out again, how fast your hand was,
-and whether the bunny went in. It names up to three of those and then says what is hanging
-there now — *a pouch with the mascot inside it, facing out* — and exactly what it kept.
+whether the bunny went in, how many parcels you opened, how many ways of carrying you found,
+and how often the bunny had to ask you to ease off.
+
+From those traces it also mints a **craftsman name** — a two- or three-word shop title like
+*Moonfold Packer*, *Rush Ribbon Binder*, *Slow Star Keeper*. Invented shop-name energy, not a
+personality quiz. The word does not appear until the card.
 
 The card is a downloadable 600×800 PNG drawn from the same numbers as the world: your
-arrangement, zipped, in the weather your own hand produced. The trace is kept in
-`localStorage` under `tiny-worlds:maskutchi-bag-charm:trace`.
+arrangement, zipped, in the weather your own hand produced, stamped with that shop name.
+
+**Share it.** On a phone that supports the Web Share API, *share it* sends the PNG plus a line
+that includes the shop name. Elsewhere, *keep it* still downloads the picture, and *copy the
+link* (or the share button's fallback) puts
+`https://pztcookie.github.io/tiny-worlds/games/maskutchi-bag-charm/` on the clipboard so a
+friend can play. No backend, no accounts, no API key; copy-link is just the clipboard.
+
+The trace is kept in `localStorage` under `tiny-worlds:maskutchi-bag-charm:trace`.
 
 ## What each part of the framework became
 
 | Framework | Implementation |
 |---|---|
-| World | One clear zip pouch on a bag strap against a pastel sky of shining stars, empty, with twelve miniatures spilled beside it and the bunny outside on the strap |
+| World | One clear zip pouch on a bag strap against a pastel sky of shining stars, empty, with twelve miniatures spilled beside it — three of them sealed as parcels — and the bunny outside on the strap |
 | Quest | On the paper tag: *"fit your world in here before you get there"* — visible, and impossible to do tidily |
-| Play | Drag one in → watch the pouch agree or disagree → rearrange, or pull it back out → zip it shut |
-| Personality | Matching neighbours multiply, lone strangers fade, and the sky reads your hand speed — jumpy and streaking when fast, warm with falling stars when slow |
-| Secret | The bunny can go in, and nothing resting near it duplicates or fades |
-| Trace | `madeRoomFor`, `pulledBackOut`, `tempo`, `copiesKept`, `bunnyInside` |
-| Transformation | Empty outline → a zipped pouch holding one specific arrangement, swinging in the weather the player's own tempo produced |
-| Take-home | A PNG of that pouch with exactly their contents, and one line about what they made room for |
+| Play | Find how one wants to be carried → drop it in → watch the pouch agree or disagree → rearrange, or pull it back out → zip it shut |
+| Personality | Matching neighbours multiply, lone strangers fade, the sky reads your hand, and each miniature refuses until its gesture is found |
+| Secret | The bunny can go in, and nothing resting near it duplicates or fades. Three parcels are a playful layer on top, not a second secret |
+| Trace | `madeRoomFor`, `pulledBackOut`, `tempo`, `copiesKept`, `bunnyInside`, plus `packagesOpened`, `gesturesFound`, `rushCount` for the shop name |
+| Transformation | Empty outline → a zipped pouch holding one specific arrangement, swinging in the weather the player's own tempo produced, stamped with a shop name |
+| Take-home | A PNG of that pouch with exactly their contents, the craftsman name, a share action, and one line about what they made room for |
 
 ## Assets
 

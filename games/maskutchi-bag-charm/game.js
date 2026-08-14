@@ -43,19 +43,19 @@ const PACE = {
 /** Three families, because colour is the most legible thing in this art and a family
  *  needs no legend. The bunny is a family of one, which is the whole secret. */
 const KINDS = {
-  soda: { art: "item-soda", family: "grape", w: 54, name: "the soda bottle" },
-  "grape-candy": { art: "item-grape-candy", family: "grape", w: 56, name: "the grape candy" },
-  tart: { art: "item-tart", family: "grape", w: 50, name: "the grape tart" },
-  parfait: { art: "item-parfait", family: "grape", w: 46, name: "the parfait" },
-  candy: { art: "item-candy", family: "milk", w: 46, name: "the blue candy" },
-  yakult: { art: "item-yakult", family: "milk", w: 34, name: "the little bottle" },
-  pudding: { art: "item-pudding", family: "milk", w: 48, name: "the blue pudding" },
-  star: { art: "item-star", family: "milk", w: 30, name: "the tiny star" },
-  cookie: { art: "item-cookie", family: "cream", w: 62, name: "the cookie packet" },
-  peanut: { art: "item-peanut", family: "cream", w: 46, name: "the peanut butter" },
-  choco: { art: "item-choco", family: "cream", w: 74, name: "the choco box" },
-  blindbag: { art: "item-blindbag", family: "cream", w: 66, name: "the blind bag" },
-  bunny: { art: "bunny", family: "lilac", w: 62, name: "the bunny" },
+  soda: { art: "item-soda", family: "grape", w: 54, name: "the soda bottle", gesture: "upright" },
+  "grape-candy": { art: "item-grape-candy", family: "grape", w: 56, name: "the grape candy", gesture: "shake" },
+  tart: { art: "item-tart", family: "grape", w: 50, name: "the grape tart", gesture: "spin" },
+  parfait: { art: "item-parfait", family: "grape", w: 46, name: "the parfait", gesture: "upright" },
+  candy: { art: "item-candy", family: "milk", w: 46, name: "the blue candy", gesture: "shake" },
+  yakult: { art: "item-yakult", family: "milk", w: 34, name: "the little bottle", gesture: "hold", wrap: true },
+  pudding: { art: "item-pudding", family: "milk", w: 48, name: "the blue pudding", gesture: "slow" },
+  star: { art: "item-star", family: "milk", w: 30, name: "the tiny star", gesture: "shake", wrap: true },
+  cookie: { art: "item-cookie", family: "cream", w: 62, name: "the cookie packet", gesture: "spin", wrap: true },
+  peanut: { art: "item-peanut", family: "cream", w: 46, name: "the peanut butter", gesture: "tap-twice" },
+  choco: { art: "item-choco", family: "cream", w: 74, name: "the choco box", gesture: "slow" },
+  blindbag: { art: "item-blindbag", family: "cream", w: 66, name: "the blind bag", gesture: "tap-twice" },
+  bunny: { art: "bunny", family: "lilac", w: 62, name: "the bunny", gesture: "slow" },
 };
 
 /** Where the twelve land when the bag is tipped out. Placed by hand rather than
@@ -196,6 +196,9 @@ function makeItem(kind, x, y, rot, extra = {}) {
     fade: 0,
     faded: false,
     copy: false,
+    gesture: K.gesture,
+    wrapped: extra.wrapped ?? !!K.wrap,
+    unlocked: extra.unlocked ?? false,
     ...extra,
   };
 }
@@ -285,17 +288,21 @@ function begin(name) {
 
 let held = null;
 let grab = { x: 0, y: 0 };
+let lastTap = { id: 0, t: 0 };
+let glowingNow = null;
 
 function hit(it, x, y) {
-  return Math.abs(x - it.x) <= it.w / 2 + 4 && Math.abs(y - it.y) <= it.h / 2 + 4;
+  const wrapped = it.wrapped && !it.unwrap;
+  const size = wrapped ? parcelSize(it, it.w, it.h) : { w: it.w, h: it.h };
+  return Math.abs(x - it.x) <= size.w / 2 + 6 && Math.abs(y - it.y) <= size.h / 2 + 6;
 }
 
 /** Whatever is on top, which is the reverse of the order things are drawn in. */
 function pick(x, y) {
   const out = items.filter((it) => !it.inside);
   const inn = items.filter((it) => it.inside);
-  for (let i = out.length - 1; i >= 0; i -= 1) if (hit(out[i], x, y)) return out[i];
-  for (let i = inn.length - 1; i >= 0; i -= 1) if (hit(inn[i], x, y)) return inn[i];
+  for (let i = out.length - 1; i >= 0; i -= 1) if (!out[i].flee && hit(out[i], x, y)) return out[i];
+  for (let i = inn.length - 1; i >= 0; i -= 1) if (!inn[i].flee && hit(inn[i], x, y)) return inn[i];
   return null;
 }
 
@@ -304,11 +311,290 @@ function toFront(it) {
   items.push(it);
 }
 
-function takeUp(it) {
+/* ---------- how each miniature wants to be carried ----------
+ *
+ * Six gestures, reused. Until one is found the pouch will not keep the miniature —
+ * it wriggles out, never a silent no. After that the old multiply/fade rules take over.
+ * Three start wrapped; unwrapping is the same gesture, with the wrap splitting first.
+ */
+
+const TEACH = { hold: 0, slow: 1, "tap-twice": 2, shake: 3, upright: 4, spin: 5 };
+
+const WANT = {
+  slow: {
+    murmur: "quieter with that one",
+    explicit: "carry it as if it could spill.",
+    refuse: "too quick for that one",
+  },
+  shake: {
+    murmur: "wake it up a bit",
+    explicit: "give it a little shake while you hold it.",
+    refuse: "it wanted a jiggle",
+  },
+  spin: {
+    murmur: "it wants to turn",
+    explicit: "spin it once, then it will come.",
+    refuse: "it didn't get to turn",
+  },
+  "tap-twice": {
+    murmur: "twice, maybe",
+    explicit: "tap it twice, then pick it up.",
+    refuse: "one tap wasn't enough",
+  },
+  hold: {
+    murmur: "it likes a moment first",
+    explicit: "hold still a beat before you move.",
+    refuse: "it wanted a moment first",
+  },
+  upright: {
+    murmur: "don't tip it",
+    explicit: "keep it standing while you walk it over.",
+    refuse: "it nearly spilled",
+  },
+};
+
+const Carry = {
+  it: null,
+  born: 0,
+  last: null,
+  dist: 0,
+  speedSum: 0,
+  speedN: 0,
+  maxSpeed: 0,
+  still: true,
+  rushedHold: false,
+  wind: 0,
+  lastAng: null,
+  samples: [],
+  reversals: 0,
+  lastVx: 0,
+  lastVy: 0,
+  tilt: 0,
+  maxTilt: 0,
+  nearShiver: 0,
+
+  begin(it, p, now) {
+    this.it = it;
+    this.born = now;
+    this.last = { x: p.x, y: p.y, t: now };
+    this.dist = 0;
+    this.speedSum = 0;
+    this.speedN = 0;
+    this.maxSpeed = 0;
+    this.still = true;
+    this.rushedHold = false;
+    this.wind = 0;
+    this.lastAng = null;
+    this.samples = [{ x: p.x, y: p.y }];
+    this.reversals = 0;
+    this.lastVx = 0;
+    this.lastVy = 0;
+    this.tilt = it.kind === "parfait" || it.kind === "soda" ? it.rot : 0;
+    this.maxTilt = Math.abs(this.tilt);
+    this.nearShiver = 0;
+  },
+
+  move(p, now) {
+    if (!this.it || !this.last) return;
+    const dt = Math.max(16, now - this.last.t);
+    const dx = p.x - this.last.x;
+    const dy = p.y - this.last.y;
+    const dist = Math.hypot(dx, dy);
+    const speed = (dist / dt) * 1000;
+
+    this.dist += dist;
+    this.speedSum += speed;
+    this.speedN += 1;
+    this.maxSpeed = Math.max(this.maxSpeed, speed);
+
+    if (dist > 14) {
+      this.still = false;
+      if (now - this.born < 520) this.rushedHold = true;
+    }
+
+    const vx = dx / dt;
+    const vy = dy / dt;
+    if (this.lastVx && vx * this.lastVx < 0 && Math.abs(dx) > 10) this.reversals += 1;
+    if (this.lastVy && vy * this.lastVy < 0 && Math.abs(dy) > 10) this.reversals += 1;
+    this.lastVx = vx;
+    this.lastVy = vy;
+
+    this.samples.push({ x: p.x, y: p.y });
+    if (this.samples.length > 28) this.samples.shift();
+    if (this.samples.length > 4) {
+      let cx = 0;
+      let cy = 0;
+      for (const s of this.samples) {
+        cx += s.x;
+        cy += s.y;
+      }
+      cx /= this.samples.length;
+      cy /= this.samples.length;
+      const ang = Math.atan2(p.y - cy, p.x - cx);
+      if (this.lastAng != null) {
+        let d = ang - this.lastAng;
+        while (d > Math.PI) d -= Math.PI * 2;
+        while (d < -Math.PI) d += Math.PI * 2;
+        this.wind += d;
+      }
+      this.lastAng = ang;
+    }
+
+    // Tall things tip when the hand jerks sideways; a steady carry keeps them standing.
+    this.tilt += vx * 0.06;
+    this.tilt = Math.max(-1.1, Math.min(1.1, this.tilt));
+    this.tilt *= 0.88;
+    this.maxTilt = Math.max(this.maxTilt, Math.abs(this.tilt));
+    if (this.it.gesture === "upright") this.it.rot = this.tilt;
+
+    this.last = { x: p.x, y: p.y, t: now };
+    this.feel();
+  },
+
+  avg() {
+    return this.speedN ? this.speedSum / this.speedN : 0;
+  },
+
+  spinRadius() {
+    if (this.samples.length < 6) return 0;
+    let cx = 0;
+    let cy = 0;
+    for (const s of this.samples) {
+      cx += s.x;
+      cy += s.y;
+    }
+    cx /= this.samples.length;
+    cy /= this.samples.length;
+    let r = 0;
+    for (const s of this.samples) r += Math.hypot(s.x - cx, s.y - cy);
+    return r / this.samples.length;
+  },
+
+  ready() {
+    const it = this.it;
+    if (!it || it.unlocked) return false;
+    const g = it.gesture;
+    if (g === "tap-twice") return !!it.primed;
+    if (g === "hold") return this.still && clock - this.born > 520 && !this.rushedHold;
+    if (g === "slow") return this.dist > 48 && this.avg() < 280 && this.maxSpeed < 520;
+    if (g === "shake") return this.reversals >= 4 && this.dist > 40;
+    if (g === "spin") return Math.abs(this.wind) > 4.2 && this.spinRadius() > 22;
+    if (g === "upright") return this.dist > 70 && this.maxTilt < 0.22;
+    return false;
+  },
+
+  almost() {
+    const it = this.it;
+    if (!it || it.unlocked) return false;
+    const g = it.gesture;
+    if (g === "slow") return this.dist > 36 && this.avg() < 420 && this.maxSpeed < 720;
+    if (g === "shake") return this.reversals >= 2;
+    if (g === "spin") return Math.abs(this.wind) > 2.4 && this.spinRadius() > 16;
+    if (g === "upright") return this.dist > 50 && this.maxTilt < 0.42;
+    if (g === "hold") return this.still && clock - this.born > 300 && !this.rushedHold;
+    return false;
+  },
+
+  feel() {
+    const it = this.it;
+    if (!it || it.unlocked) return;
+    if (this.ready()) {
+      unlock(it);
+      return;
+    }
+    if (this.almost() && clock - this.nearShiver > 380) {
+      this.nearShiver = clock;
+      it.shiver = clock;
+    }
+  },
+
+  tick() {
+    if (!this.it || this.it.unlocked) return;
+    if (this.it.gesture === "hold") this.feel();
+    if (this.it.gesture === "upright") this.it.rot = this.tilt;
+  },
+
+  end() {
+    this.it = null;
+    this.last = null;
+  },
+};
+
+let rushSaid = 0;
+function maybeRush(now) {
+  if (!held || game.over || game.zipped) return;
+  if (weather.tempo < 0.68 || now - rushSaid < 8200) return;
+  rushSaid = now;
+  Trace.state.rushCount += 1;
+  const lines = ["easy — the stars are streaking", "not so fast", "slow down a little"];
+  whisper(lines[Trace.state.rushCount % lines.length]);
+}
+
+function glowTarget() {
+  if (!game.pace || game.zipped) return null;
+  const locked = items.filter((it) => !it.unlocked && !it.copy);
+  if (!locked.length) return null;
+  const failed = locked.find((it) => it.failed && clock - it.failed < 5000);
+  if (failed) return failed;
+  const wrapped = locked
+    .filter((it) => it.wrapped)
+    .sort((a, b) => (TEACH[a.gesture] ?? 9) - (TEACH[b.gesture] ?? 9));
+  if (wrapped.length) return wrapped[0];
+  const near = locked
+    .filter((it) => !it.inside)
+    .sort((a, b) => Math.hypot(a.x - 560, a.y - 280) - Math.hypot(b.x - 560, b.y - 280))[0];
+  return near ?? locked[0];
+}
+
+function unlock(it) {
+  if (it.unlocked) return;
+  const wasWrapped = it.wrapped;
+  it.unlocked = true;
+  it.primed = false;
+  it.failed = 0;
+  Trace.gestured(it, wasWrapped);
+  if (wasWrapped) {
+    it.wrapped = false;
+    it.unwrap = clock;
+    sparkle(it.x, it.y, "#dcc9ff", 18);
+    once("unwrap", "oh — that's what was in it");
+  } else {
+    sparkle(it.x, it.y, "#efe6ff", 10);
+    once("gesture", "it settled");
+  }
+}
+
+function refuse(it) {
+  it.failed = clock;
+  it.shiver = clock;
+  Trace.refused += 1;
+  sparkle(it.x, it.y, "#e4d6ff", 9);
+
+  const want = WANT[it.gesture];
+  const n = Trace.refused;
+  if (n <= 1) whisper(it.wrapped ? "still wrapped" : "it wriggled out");
+  else if (n === 2) whisper(want ? want.refuse : "not like that");
+  else whisper(want ? want.murmur : "it has its own way in");
+  Hints.gestureNudge();
+
+  it.inside = false;
+  if (it.kind === "bunny") {
+    const x = hop.to || BUNNY_HOME.x;
+    it.flee = { x0: it.x, y0: it.y, x1: x, y1: perch(x), born: clock };
+  } else {
+    const spot = spillSpot(it);
+    it.flee = { x0: it.x, y0: it.y, x1: spot.x, y1: spot.y, born: clock };
+  }
+}
+
+function takeUp(it, p) {
   held = it;
   it.held = true;
   it.came = it.inside;
+  it.flee = null;
   toFront(it);
+  Carry.begin(it, p, clock);
+  if (it.gesture === "tap-twice" && it.primed && !it.unlocked) unlock(it);
 }
 
 function putDown() {
@@ -317,12 +603,26 @@ function putDown() {
   held = null;
   it.held = false;
 
-  it.inside = Inside.holds(it.x, it.y);
+  const wasTap = Carry.dist < 18 && clock - Carry.born < 320;
+  if (wasTap) lastTap = { id: it.id, t: clock };
+
+  // Last chance: a slow or upright carry is judged on the whole trip, not a mid-drag spike.
+  if (!it.unlocked) Carry.feel();
+
+  const inPouch = Inside.holds(it.x, it.y);
+  if (inPouch && !it.unlocked) {
+    Carry.end();
+    refuse(it);
+    return;
+  }
+
+  it.inside = inPouch;
   if (it.came && !it.inside) Trace.pulledOut(it);
   if (!it.came && it.inside) Trace.putIn(it);
 
   // Anything in the pouch settles rather than staying at the angle it was carried at.
-  it.rot *= 0.35;
+  if (it.gesture !== "upright" || it.inside) it.rot *= 0.35;
+  Carry.end();
 }
 
 /* ---------- PERSONALITY — the pouch has opinions about what belongs together ----------
@@ -407,6 +707,8 @@ function copyOf(it) {
       inside: true,
       copy: true,
       born: clock,
+      unlocked: true,
+      wrapped: false,
     });
     items.push(twin);
     sparkle(x, y, "#fff4c9", 7);
@@ -500,11 +802,11 @@ function hopNearer() {
   hop.born = clock;
 }
 
-/** ANTI-STUCK, wordlessly: it leans at whatever is going, and on a stall it moves towards
- *  the mouth of the pouch. It never gets in by itself. */
+/** ANTI-STUCK, wordlessly: it leans at the glowing mystery, or at whatever is fading, and
+ *  on a stall it moves towards the mouth of the pouch. It never gets in by itself. */
 function watchOver(dt) {
   const b = bunny();
-  if (!b || b.inside || b.held) return;
+  if (!b || b.inside || b.held || b.flee) return;
 
   if (hop.born) {
     const t = (clock - hop.born) / 620;
@@ -518,10 +820,12 @@ function watchOver(dt) {
   }
   if (!hop.born) b.y = perch(b.x) + Math.sin(clock * 0.0016) * 1.6;
 
+  const glowing = glowTarget();
   const going = packed()
     .filter((it) => it.fade > 0)
     .sort((a, b2) => b2.fade - a.fade)[0];
-  const want = going ? Math.max(-0.3, Math.min(0.3, (going.x - b.x) * 0.0016)) : 0;
+  const focus = glowing && !glowing.held ? glowing : going;
+  const want = focus ? Math.max(-0.3, Math.min(0.3, (focus.x - b.x) * 0.0016)) : 0;
   b.rot += (want - b.rot) * (1 - Math.exp(-dt / 260));
 }
 
@@ -559,6 +863,22 @@ function drift(dt) {
       falling.splice(i, 1);
     } else if (f.y > H + 30) {
       falling.splice(i, 1);
+    }
+  }
+
+  for (const it of items) {
+    if (!it.flee) continue;
+    const t = (clock - it.flee.born) / 440;
+    if (t >= 1) {
+      it.x = it.flee.x1;
+      it.y = it.flee.y1;
+      it.rot *= 0.2;
+      it.flee = null;
+    } else {
+      const e = 1 - (1 - t) * (1 - t);
+      it.x = it.flee.x0 + (it.flee.x1 - it.flee.x0) * e;
+      it.y = it.flee.y0 + (it.flee.y1 - it.flee.y0) * e - Math.sin(t * Math.PI) * 22;
+      it.rot += 0.14;
     }
   }
 }
@@ -793,6 +1113,89 @@ function drawSparks() {
   }
 }
 
+function roundBox(x, y, w, h, r) {
+  g.beginPath();
+  g.moveTo(x + r, y);
+  g.arcTo(x + w, y, x + w, y + h, r);
+  g.arcTo(x + w, y + h, x, y + h, r);
+  g.arcTo(x, y + h, x, y, r);
+  g.arcTo(x, y, x + w, y, r);
+  g.closePath();
+}
+
+function parcelSize(it, w, h) {
+  if (it.kind === "star") return { w: 46, h: 46 };
+  if (it.kind === "yakult") return { w: 38, h: Math.max(h, 60) };
+  return { w: Math.max(w, 54), h: Math.max(h * 0.92, 50) };
+}
+
+/** A sealed pastel parcel, cream paper and a lilac ribbon, so the wrap belongs to this
+ *  sky rather than to a new sprite sheet. */
+function drawParcel(it, cx, cy, w, h, rot, alpha, split = 0) {
+  const size = parcelSize(it, w, h);
+  const pw = size.w;
+  const ph = size.h;
+  const halves = [
+    { x: -split * 18, a: -split * 0.4 },
+    { x: split * 18, a: split * 0.4 },
+  ];
+
+  g.save();
+  g.translate(cx, cy);
+  g.rotate(rot);
+  g.globalAlpha = alpha * (1 - split * 0.55);
+
+  for (const half of split ? halves : [{ x: 0, a: 0 }]) {
+    g.save();
+    g.translate(half.x, 0);
+    g.rotate(half.a);
+    const paper = g.createLinearGradient(-pw / 2, -ph / 2, pw / 2, ph / 2);
+    paper.addColorStop(0, "#f7efe0");
+    paper.addColorStop(0.55, "#ead6f4");
+    paper.addColorStop(1, "#dcc8ff");
+    g.fillStyle = paper;
+    g.strokeStyle = "rgba(111, 79, 176, 0.35)";
+    g.lineWidth = 1.4;
+    roundBox(-pw / 2, -ph / 2, pw, ph, 7);
+    g.fill();
+    g.stroke();
+
+    g.strokeStyle = "rgba(168, 124, 255, 0.85)";
+    g.lineWidth = 4;
+    g.beginPath();
+    g.moveTo(0, -ph / 2);
+    g.lineTo(0, ph / 2);
+    g.moveTo(-pw / 2, 0);
+    g.lineTo(pw / 2, 0);
+    g.stroke();
+
+    g.fillStyle = "#b9a0f5";
+    g.beginPath();
+    g.moveTo(0, -6);
+    g.quadraticCurveTo(7, -1, 0, 5);
+    g.quadraticCurveTo(-7, -1, 0, -6);
+    g.fill();
+    spark(0, 0, 4.5, "#fff6d0", 0.9);
+    g.restore();
+    if (!split) break;
+  }
+  g.restore();
+}
+
+function drawMysteryGlow(it, y) {
+  const pulse = 0.55 + Math.sin(clock * 0.005 + it.id) * 0.28;
+  const r = Math.max(it.w, it.h) * (0.95 + pulse * 0.2);
+  const glow = g.createRadialGradient(it.x, y, 0, it.x, y, r);
+  glow.addColorStop(0, `rgba(220, 206, 255, ${0.55 * pulse})`);
+  glow.addColorStop(0.5, `rgba(186, 160, 255, ${0.28 * pulse})`);
+  glow.addColorStop(1, "rgba(220, 206, 255, 0)");
+  g.fillStyle = glow;
+  g.beginPath();
+  g.arc(it.x, y, r, 0, Math.PI * 2);
+  g.fill();
+  if ((clock + it.id * 80) % 900 < 120) spark(it.x + r * 0.35, y - r * 0.4, 5, "#efe6ff", pulse);
+}
+
 function drawItem(it) {
   let y = it.y;
   let rot = it.rot;
@@ -805,6 +1208,21 @@ function drawItem(it) {
     const t = (clock - it.nudge) / 420;
     if (t >= 1) it.nudge = 0;
     else y -= Math.sin(t * Math.PI) * 9;
+  }
+
+  if (it.shiver) {
+    const t = (clock - it.shiver) / 340;
+    if (t >= 1) it.shiver = 0;
+    else {
+      y += Math.sin(t * Math.PI * 6) * 3.5 * (1 - t);
+      rot += Math.sin(t * Math.PI * 8) * 0.12 * (1 - t);
+    }
+  }
+
+  if (it.held && it.gesture === "hold" && Carry.it === it && Carry.still && !it.unlocked) {
+    const wait = Math.min(1, (clock - Carry.born) / 520);
+    w *= 1 + wait * 0.06;
+    h *= 1 + wait * 0.06;
   }
 
   // A copy arrives with a pop, so it is never mistaken for something that was always there.
@@ -835,13 +1253,28 @@ function drawItem(it) {
     g.fill();
   }
 
+  const mystery = glowingNow;
+  if (mystery === it && !it.unlocked) drawMysteryGlow(it, y);
+
+  const unwrapping = it.unwrap ? Math.min(1, (clock - it.unwrap) / 520) : 0;
+  if (it.unwrap && unwrapping >= 1) it.unwrap = 0;
+
   if (it.held) {
     g.save();
     g.shadowColor = "rgba(56, 71, 122, 0.35)";
     g.shadowBlur = 12;
     g.shadowOffsetY = 6;
   }
-  paste(KINDS[it.kind].art, it.x, y, w, h, rot, 1 - it.fade * 0.62);
+
+  if (it.wrapped && !unwrapping) {
+    drawParcel(it, it.x, y, w, h, rot, 1);
+  } else if (unwrapping && unwrapping < 1) {
+    drawParcel(it, it.x, y, w, h, rot, 1, unwrapping);
+    paste(KINDS[it.kind].art, it.x, y, w, h, rot, unwrapping);
+  } else {
+    paste(KINDS[it.kind].art, it.x, y, w, h, rot, 1 - it.fade * 0.62);
+  }
+
   if (it.held) g.restore();
 
   if (it.starred) spark(it.x + it.w * 0.4, y - it.h * 0.38, 5, "#ffe89a");
@@ -854,6 +1287,7 @@ function render() {
 
   drawWaiting();
   drawMarks();
+  glowingNow = glowTarget();
   for (const it of items) if (it.inside && !it.held) drawItem(it);
   paste("pouch", POUCH.x + POUCH.sway + POUCH.w / 2, POUCH.y + POUCH.h / 2, POUCH.w, POUCH.h);
   drawZip();
@@ -884,6 +1318,8 @@ function frame(now) {
   blow(dt, now);
   drift(dt);
   watchOver(dt);
+  Carry.tick();
+  maybeRush(now);
   if (game.pace && !game.zipped && !game.over && progress() >= 1) closeZip();
 
   render();
@@ -921,6 +1357,13 @@ function reflect() {
   if (s.pulledBackOut >= 3) traits.push(["Editor", `you took ${s.pulledBackOut} things out again`]);
   if (s.tempo < 0.2) traits.push(["Slow Hand", "you moved slowly enough to turn the sky warm"]);
   if (s.tempo > 0.5) traits.push(["Quick Hand", "you moved faster than the pouch could keep up with"]);
+  if (s.packagesOpened >= 1) {
+    traits.push([
+      "Opened",
+      s.packagesOpened === 1 ? "you opened one sealed parcel" : `you opened ${s.packagesOpened} sealed parcels`,
+    ]);
+  }
+  if (s.gesturesFound >= 4) traits.push(["Found Their Ways", `you found how ${s.gesturesFound} things wanted to be carried`]);
   if (!traits.length) {
     traits.push(["Packed", `you put ${packed().length} things in and left the rest in the spill`]);
   }
@@ -932,6 +1375,8 @@ function reflect() {
     Editor: "a pouch with room left in it",
     "Slow Hand": "a pouch arranged in warm light",
     "Quick Hand": "a pouch packed at a run",
+    Opened: "a pouch that started as parcels",
+    "Found Their Ways": "a pouch of things that were asked how they wanted to go in",
     Packed: "a pouch with a few things in it and the rest left outside",
   };
 
@@ -940,14 +1385,40 @@ function reflect() {
     traits: top,
     pouch: pouches[top[0][0]],
     kept: contents(),
+    shop: craftsmanName(),
   };
+}
+
+/** A shop title from what they did — tempo, parcels, copies, the bunny — never who they are. */
+function craftsmanName() {
+  const s = Trace.state;
+  const first = [];
+  if (s.rushCount >= 2 || s.tempo > 0.5) first.push("Rush");
+  else if (s.tempo < 0.2) first.push(s.pulledBackOut >= 2 || s.gesturesFound >= 3 ? "Moonfold" : "Slow");
+  if (s.packagesOpened >= 2) first.push("Parcel");
+  else if (s.packagesOpened === 1) first.push("Ribbon");
+  if (s.bunnyInside) first.push("Star");
+  if (!first.length) first.push("Tiny");
+
+  const last = [];
+  if (s.copiesKept >= 3) last.push("Binder");
+  if (s.madeRoomFor >= 2) last.push("Keeper");
+  if (s.pulledBackOut >= 3) last.push("Folder");
+  if (s.packagesOpened >= 2) last.push("Unpacker");
+  if (s.gesturesFound >= 4) last.push("Packer");
+  if (!last.length) last.push(s.gesturesFound ? "Packer" : "Folder");
+
+  const a = first[0];
+  const b = last.find((word) => word !== a) || last[0];
+  if (first.length > 1 && first[1] !== b && a !== "Moonfold") return `${a} ${first[1]} ${b}`;
+  return `${a} ${b}`;
 }
 
 /* ============================== ENGINE ============================== */
 
 const KEY = (k) => `tiny-worlds:${CONFIG.slug}:${k}`;
 
-/** TRACE — five pieces of behavioural state. Resist adding a sixth. */
+/** TRACE — the original five, plus three the shop name reads. */
 const Trace = {
   state: {
     madeRoomFor: 0,
@@ -955,9 +1426,13 @@ const Trace = {
     tempo: 0,
     copiesKept: 0,
     bunnyInside: false,
+    packagesOpened: 0,
+    gesturesFound: 0,
+    rushCount: 0,
   },
   acts: 0,
   pushedOut: 0,
+  refused: 0,
 
   putIn(it) {
     if (it.kind === "bunny") {
@@ -975,6 +1450,13 @@ const Trace = {
     this.state.pulledBackOut += 1;
     if (it.kind === "bunny") this.state.bunnyInside = false;
     this.act();
+  },
+
+  gestured(it, wasWrapped) {
+    this.state.gesturesFound += 1;
+    if (wasWrapped) this.state.packagesOpened += 1;
+    Hints.retire("gesture");
+    this.save();
   },
 
   act() {
@@ -1017,9 +1499,8 @@ function whisper(text) {
  * HINTS — there is no fail state here, so being stuck is the only failure, and the timer
  * means it has to be caught fast. The world nudges when the player goes quiet and when the
  * beat notices its own rules emptying the pouch. Wordless first: the charms flare, a
- * miniature hops, the bunny leans and then hops nearer. Only then does the tag speak, and
- * it climbs to nearly explicit rather than staying coy. Every rung retires for good once
- * the bunny is inside.
+ * miniature hops, a parcel glows, the bunny leans. Only then does the bunny murmur, and
+ * the tag climbs to nearly explicit rather than staying coy.
  */
 const Hints = {
   idleMs: 7000,
@@ -1027,6 +1508,7 @@ const Hints = {
   _retired: new Set(),
   _level: {},
   _restore: null,
+  _gestureAt: 0,
 
   ladder: ["…", "the bunny isn't worried", "nothing next to the bunny has ever disappeared."],
 
@@ -1035,10 +1517,16 @@ const Hints = {
     this._timer = setTimeout(() => this.offer(), this.idleMs);
   },
 
+  teachMs() {
+    return game.pace ? Math.min(20000, game.pace.beat * 18) : 20000;
+  },
+
   candidates() {
     const out = [];
     if (!game.pace) out.push("charms");
-    else if (!packed().length) out.push("packing");
+    else if (!packed().length && Trace.refused === 0 && (this._level.packing ?? 0) < 2) out.push("packing");
+    else if (Trace.state.gesturesFound === 0 && items.some((it) => !it.unlocked && !it.copy)) out.push("gesture");
+    else if (items.some((it) => it.wrapped)) out.push("parcel");
     else if (Trace.pushedOut >= 1 && !packed().some((it) => it.kind === "bunny")) out.push("bunny");
     return out.filter((id) => !this._retired.has(id));
   },
@@ -1057,10 +1545,27 @@ const Hints = {
 
     // The nearest thing to the pouch lifts, which is the only cue the packing needs.
     if (pick === "packing") {
-      const near = items
-        .filter((it) => !it.inside && it.kind !== "bunny")
-        .sort((a, b) => Math.abs(b.x - 300) - Math.abs(a.x - 300))[0];
-      if (near) near.nudge = clock;
+      const glowing = glowTarget();
+      const near =
+        glowing ||
+        items
+          .filter((it) => !it.inside && it.kind !== "bunny")
+          .sort((a, b) => Math.abs(a.x - 480) - Math.abs(b.x - 480))[0];
+      if (near) {
+        near.nudge = clock;
+        this._level.packing = (this._level.packing ?? 0) + 1;
+      }
+      return;
+    }
+
+    if (pick === "gesture") {
+      this.gestureHint();
+      return;
+    }
+
+    if (pick === "parcel") {
+      const it = glowTarget();
+      if (it) it.nudge = clock;
       return;
     }
 
@@ -1069,9 +1574,46 @@ const Hints = {
     this.say(this.ladder[level]);
   },
 
+  gestureNudge() {
+    if (Trace.state.gesturesFound) return;
+    const it = glowTarget();
+    if (it) it.nudge = clock;
+    const elapsed = clock - (game.started || clock);
+    if (Trace.refused >= 3 || elapsed > this.teachMs() * 0.65) {
+      if ((this._level.gesture ?? -1) < 2 && it && WANT[it.gesture]) {
+        this._level.gesture = 2;
+        this.say(WANT[it.gesture].explicit);
+      }
+    }
+  },
+
+  gestureHint() {
+    const it = glowTarget();
+    if (!it) return;
+    this._lastGestureHint = clock;
+    it.nudge = clock;
+    const level = (this._level.gesture = Math.min(2, (this._level.gesture ?? -1) + 1));
+    const want = WANT[it.gesture];
+    if (level === 0) {
+      whisper(it.wrapped ? "something's in that parcel" : "that one has its own way in");
+      return;
+    }
+    if (level === 1) {
+      whisper(want ? want.murmur : "it has its own way in");
+      return;
+    }
+    if (want) this.say(want.explicit);
+  },
+
   /** Called every beat, so the world can watch what its own rules are doing. Busy is not
    *  the same as unstuck: the pouch emptying itself is a stall even if the hand is moving. */
   notice() {
+    if (Trace.state.gesturesFound === 0 && game.started && clock - game.started > this.teachMs()) {
+      if ((this._level.gesture ?? -1) < 2 && clock - (this._lastGestureHint || 0) > 4200) {
+        this._lastGestureHint = clock;
+        this.gestureHint();
+      }
+    }
     if (Trace.pushedOut >= 3 && this.candidates().includes("bunny") && (this._level.bunny ?? -1) < 1) {
       this.offer();
     }
@@ -1230,11 +1772,18 @@ function drawCard(said) {
   k.restore();
 
   k.textAlign = "center";
-  k.font = "21px ui-monospace, Menlo, monospace";
-  k.fillText(said.traits[0][0].toLowerCase(), CW / 2, CH - 96);
+  k.font = "11px ui-monospace, Menlo, monospace";
+  k.fillStyle = "#7a6aa8";
+  k.fillText("packed by", CW / 2, CH - 128);
+  k.font = "20px ui-monospace, Menlo, monospace";
+  k.fillStyle = "#38477a";
+  k.fillText(said.shop, CW / 2, CH - 104);
+
+  k.font = "14px ui-monospace, Menlo, monospace";
+  k.fillStyle = "#5b6ba6";
+  k.fillText(said.traits[0][0].toLowerCase(), CW / 2, CH - 78);
 
   k.font = "13px ui-monospace, Menlo, monospace";
-  k.fillStyle = "#5b6ba6";
   const words = `${said.traits[0][1]}, and kept ${said.kept}.`.split(" ");
   const lines = [""];
   for (const word of words) {
@@ -1242,7 +1791,7 @@ function drawCard(said) {
     if (k.measureText(`${line} ${word}`).width > CW - 110) lines.push(word);
     else lines[lines.length - 1] = line ? `${line} ${word}` : word;
   }
-  lines.slice(0, 3).forEach((line, i) => k.fillText(line, CW / 2, CH - 62 + i * 20));
+  lines.slice(0, 3).forEach((line, i) => k.fillText(line, CW / 2, CH - 52 + i * 18));
 }
 
 function finish() {
@@ -1251,7 +1800,8 @@ function finish() {
   const said = reflect();
   drawCard(said);
 
-  document.getElementById("reveal-title").textContent = said.traits[0][0];
+  document.getElementById("reveal-title").textContent = said.shop;
+  document.getElementById("reveal-shop").textContent = said.traits[0][0];
   document.getElementById("reveal-body").textContent = `${said.traits
     .map(([, line]) => line)
     .join(". ")}. What is hanging there now is ${said.pouch}, and it kept ${
@@ -1260,6 +1810,91 @@ function finish() {
   document.getElementById("world").hidden = true;
   document.getElementById("reveal").hidden = false;
   clearTimeout(Hints._timer);
+  readyShare(said);
+}
+
+const SHARE_URL = "https://pztcookie.github.io/tiny-worlds/games/maskutchi-bag-charm/";
+
+function downloadCard() {
+  const a = document.createElement("a");
+  a.download = `${CONFIG.slug}.png`;
+  a.href = document.getElementById("card").toDataURL("image/png");
+  a.click();
+}
+
+function copyLink() {
+  const btn = document.getElementById("share");
+  const prev = btn.textContent;
+  const done = () => {
+    btn.textContent = "copied";
+    setTimeout(() => {
+      btn.textContent = prev;
+    }, 1600);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(SHARE_URL).then(done, () => fallbackCopy(done));
+  } else fallbackCopy(done);
+}
+
+function fallbackCopy(done) {
+  const el = document.createElement("textarea");
+  el.value = SHARE_URL;
+  el.setAttribute("readonly", "");
+  el.style.position = "fixed";
+  el.style.left = "-9999px";
+  document.body.appendChild(el);
+  el.select();
+  try {
+    document.execCommand("copy");
+    done();
+  } catch {
+    btnLabel("share the picture");
+  }
+  el.remove();
+}
+
+function btnLabel(text) {
+  const btn = document.getElementById("share");
+  const prev = btn.textContent;
+  btn.textContent = text;
+  setTimeout(() => {
+    btn.textContent = prev;
+  }, 1600);
+}
+
+function cardFile() {
+  const canvas = document.getElementById("card");
+  return new Promise((resolve) => canvas.toBlob((blob) => resolve(blob), "image/png"));
+}
+
+function readyShare(said) {
+  const btn = document.getElementById("share");
+  btn.dataset.shop = said.shop;
+  btn.textContent = navigator.share ? "share it" : "copy the link";
+}
+
+async function shareCard() {
+  const shop = document.getElementById("share").dataset.shop || craftsmanName();
+  const text = `packed by ${shop} — maskutchi bag charm`;
+  try {
+    const blob = await cardFile();
+    if (!blob) {
+      copyLink();
+      return;
+    }
+    const file = new File([blob], `${CONFIG.slug}.png`, { type: "image/png" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: CONFIG.title, text });
+      return;
+    }
+    if (navigator.share) {
+      await navigator.share({ title: CONFIG.title, text, url: SHARE_URL });
+      return;
+    }
+  } catch (err) {
+    if (err && err.name === "AbortError") return;
+  }
+  copyLink();
 }
 
 /* ---------- wiring ---------- */
@@ -1291,7 +1926,8 @@ stage.addEventListener("pointerdown", (e) => {
   }
 
   grab = { x: it.x - p.x, y: it.y - p.y };
-  takeUp(it);
+  if (it.gesture === "tap-twice" && lastTap.id === it.id && clock - lastTap.t < 450) it.primed = true;
+  takeUp(it, p);
   stage.setPointerCapture(e.pointerId);
 });
 
@@ -1301,6 +1937,7 @@ stage.addEventListener("pointermove", (e) => {
   if (!held) return;
   held.x = Math.max(20, Math.min(W - 20, p.x + grab.x));
   held.y = Math.max(20, Math.min(H - 20, p.y + grab.y));
+  Carry.move(p, clock);
 });
 
 for (const kind of ["pointerup", "pointercancel"]) stage.addEventListener(kind, putDown);
@@ -1312,11 +1949,10 @@ document.getElementById("charms").addEventListener("click", (e) => {
 
 document.getElementById("finish").addEventListener("click", closeZip);
 
-document.getElementById("download").addEventListener("click", () => {
-  const a = document.createElement("a");
-  a.download = `${CONFIG.slug}.png`;
-  a.href = document.getElementById("card").toDataURL("image/png");
-  a.click();
+document.getElementById("download").addEventListener("click", downloadCard);
+
+document.getElementById("share").addEventListener("click", () => {
+  shareCard();
 });
 
 document.getElementById("again").addEventListener("click", () => {
