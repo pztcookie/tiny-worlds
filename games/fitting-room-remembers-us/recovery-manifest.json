@@ -1,0 +1,110 @@
+{
+  "source": "https://euphonious-tartufo-256954.netlify.app/",
+  "retrieved_date": "2026-11-02",
+  "kind": "deployed-static-site-snapshot",
+  "files": [
+    {
+      "path": "app.js",
+      "bytes": 33339,
+      "sha256": "620bacc0bae4f85a7d830e65f8b5a3db9ef1b1bc7343e835ca1980d2c198897b",
+      "source_sha256": "aedbefd890cf58e3e4f4729aedebf4530fa91f0f5abc3c0a746924f41e7bd420",
+      "source_bytes": 33321
+    },
+    {
+      "path": "assets/backgrounds/01-main-fitting-room.svg",
+      "bytes": 10049,
+      "sha256": "555490e39bc7a8176fd91de2c47fe400352f82177ec9f4828db62c8c449e7f4b"
+    },
+    {
+      "path": "assets/backgrounds/10-photo-wall.svg",
+      "bytes": 10843,
+      "sha256": "45dcf763f4f7f8a953dd6df4dde680b9e7ac08c40367903c96981d1fa4205a8b"
+    },
+    {
+      "path": "assets/characters/02-magical-fitting-room-curtain.svg",
+      "bytes": 5240,
+      "sha256": "42314d18cabc36b69cb71f6881c509155eac7c672a5347ba8600c78786aed616"
+    },
+    {
+      "path": "assets/characters/03-magical-mirror.svg",
+      "bytes": 8336,
+      "sha256": "1f4ae3c9733bd0e2018ab26bff39de6cfdc714d4b071c8715b93f636b5532ef2"
+    },
+    {
+      "path": "assets/characters/07-heart-shaped-stool.svg",
+      "bytes": 3790,
+      "sha256": "0d8814f96543785ee27b94d1f8f8a46b761b1a486274e3208d8e3fbe90ab10e9"
+    },
+    {
+      "path": "assets/characters/13-tiny-coffee-cup.svg",
+      "bytes": 4630,
+      "sha256": "3592bf2ae0c9d7bd974f58cb7d7b66912d096f550d93400e320a19723bd8fa40"
+    },
+    {
+      "path": "assets/characters/16-interactive-question-object.svg",
+      "bytes": 4266,
+      "sha256": "54937232eaaa0f34547c5ad02336b2e17db9397818a782e2da1f9ade7be82273"
+    },
+    {
+      "path": "assets/clothing/cottagecore/04-embroidered-cardigan.svg",
+      "bytes": 3700,
+      "sha256": "654011061ab847cf3f3cc37e26b2925441110ff38de104197f695af938705400"
+    },
+    {
+      "path": "assets/clothing/cottagecore/05-puff-sleeve-dress.svg",
+      "bytes": 3788,
+      "sha256": "bc3eec32fba5e383447a56bcedc86dba7ed7cba681b68295afc119ae654df7fc"
+    },
+    {
+      "path": "assets/clothing/y2k/03-pastel-denim-jacket.svg",
+      "bytes": 3397,
+      "sha256": "ce9cec768ef33855ffe0baa8f615f0910b8f97b19c5069d0a8e76923ac6518ed"
+    },
+    {
+      "path": "assets/clothing/y2k/05-glittery-camisole.svg",
+      "bytes": 3423,
+      "sha256": "3a108be9de2fb0583f9fb3dda732455bc5146edc5e6ecf5eb6b49de5d4d1142c"
+    },
+    {
+      "path": "assets/effects/17-memory-reveal-effect.svg",
+      "bytes": 4624,
+      "sha256": "7444f6f76670448aa3b69881ec13f5ac7cc936716efecd5f14c3a27629c67905"
+    },
+    {
+      "path": "assets/objects/04-clothing-rack.svg",
+      "bytes": 7273,
+      "sha256": "71c2ec698efb982298de465860afe635711c051a7dcd224fa9b3051f25b15336"
+    },
+    {
+      "path": "assets/objects/08-memory-box.svg",
+      "bytes": 5076,
+      "sha256": "ca1c41e20efb13d43ada78f39bc46393091092bc6a8dfc8c304824b8a92c18df"
+    },
+    {
+      "path": "assets/objects/09-polaroid-photo-frame.svg",
+      "bytes": 4248,
+      "sha256": "d3f566fadcffd531f0cdd03e7f56c8245e93aa93e73965c11fb1f8c32752927a"
+    },
+    {
+      "path": "assets/objects/11-magic-clothing-hanger.svg",
+      "bytes": 4285,
+      "sha256": "6ee99db5283527eb74b5401aad9bee80ed5c0218dcd41870c94651544a610b1a"
+    },
+    {
+      "path": "index.html",
+      "bytes": 25689,
+      "sha256": "c8497692ba8e5b362e670d3595492e299bbafcc12dd7dfa792f273218ce1189b"
+    },
+    {
+      "path": "styles.css",
+      "bytes": 25051,
+      "sha256": "d47373b431705cfb807dc5ac5ed4e99627c7729c54c52fd615ab7b2facddefaf"
+    }
+  ],
+  "modifications": [
+    {
+      "path": "app.js",
+      "reason": "Preserve literal dollar markers while embedding CSS, chapter JSON, and JavaScript by using replacement callbacks."
+    }
+  ]
+}
