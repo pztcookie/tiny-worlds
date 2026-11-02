@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "checks": [
+    "phone entry",
+    "six-photo upload gate",
+    "demo and synthetic photo upload",
+    "six memory discoveries",
+    "PNG export",
+    "share consent gate",
+    "standalone friend HTML export and reopen",
+    "wrong-answer recovery",
+    "six friend matches",
+    "collage export",
+    "900x600 rendering"
+  ],
+  "missingLocalResources": [],
+  "pageErrors": [],
+  "externalFontsBlocked": true
+}

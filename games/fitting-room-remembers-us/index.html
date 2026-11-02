@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<!-- This site is hosted on Netlify. Anyone can build and deploy a site
+     like this one for free: https://netlify.new/?utm_campaign=loops&utm_source=ai-legible&utm_medium=owned&utm_content=comment&utm_id=d12ee192-b09d-40b3-9e04-81720d243aa5
+     Netlify hosting facts for this site: static/SSR served via Netlify Edge. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#a9ddef">
+  <meta name="description" content="Hide six photographs in a magical fitting room and follow its glowing memory mystery.">
+  <title>The Fitting Room That Remembers Us</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app" class="app-shell">
+    <header class="app-header" aria-label="Experience navigation">
+      <button class="brand-button" type="button" data-action="home" aria-label="Return to the fitting room entrance">
+        <span class="brand-mark" aria-hidden="true">FR</span>
+        <span>The Fitting Room</span>
+      </button>
+      <div class="step-status" aria-live="polite">
+        <span id="stepLabel">Invitation</span>
+        <span class="step-dots" id="stepDots" aria-hidden="true"></span>
+      </div>
+      <button class="icon-button" type="button" data-action="privacy" aria-label="Open privacy note" title="Privacy note">i</button>
+    </header>
+
+    <main id="mainContent">
+      <section class="screen welcome-screen is-active" data-screen="welcome" aria-labelledby="welcomeTitle">
+        <img class="welcome-room" src="assets/backgrounds/01-main-fitting-room.svg" alt="An illustrated magical fitting room with curtains, a clothing rack, mirror, and heart stool.">
+        <div class="welcome-wash" aria-hidden="true"></div>
+        <div class="welcome-copy">
+          <p class="eyebrow">A photo hide-and-seek mystery</p>
+          <h1 id="welcomeTitle">The Fitting Room<br>That Remembers Us</h1>
+          <p class="welcome-promise">Give the room six photographs. It will hide them among the clothes, whisper where to look, and turn what you remember into a ridiculous little legend.</p>
+          <button class="primary-button" type="button" data-action="enter-room">
+            <span>Open the curtain</span><span aria-hidden="true">→</span>
+          </button>
+          <p class="privacy-whisper">Your photos and words stay in this browser.</p>
+        </div>
+        <img class="welcome-curtain curtain-left" src="assets/characters/02-magical-fitting-room-curtain.svg" alt="" aria-hidden="true">
+        <img class="welcome-curtain curtain-right" src="assets/characters/02-magical-fitting-room-curtain.svg" alt="" aria-hidden="true">
+      </section>
+
+      <section class="screen setup-screen" data-screen="setup" aria-labelledby="setupTitle">
+        <div class="workspace-heading">
+          <div>
+            <p class="eyebrow">Before the room hides anything</p>
+            <h1 id="setupTitle">Leave six photographs at the door.</h1>
+          </div>
+          <p>The room will place each one behind a glowing object. You can replace any photo before the search begins.</p>
+        </div>
+
+        <div class="setup-layout">
+          <section class="photo-evidence" aria-labelledby="photoEvidenceTitle">
+            <div class="section-line">
+              <h2 id="photoEvidenceTitle">The six photographs</h2>
+              <button class="text-button" type="button" data-action="load-demo">Use a fictional demo</button>
+            </div>
+            <div id="photoGrid" class="photo-grid"></div>
+          </section>
+
+          <section class="setup-details" aria-labelledby="detailsTitle">
+            <p class="eyebrow">The two troublemakers</p>
+            <h2 id="detailsTitle">Who wandered into the room?</h2>
+            <div class="name-fields">
+              <label><span>Your name</span><input id="creatorName" type="text" maxlength="30" placeholder="Cookie"></label>
+              <label><span>Your friend</span><input id="friendName" type="text" maxlength="30" placeholder="Your friend"></label>
+            </div>
+            <label class="field-label" for="seedMemory">What kind of day do these photos belong to?</label>
+            <textarea id="seedMemory" maxlength="180" rows="4" placeholder="A shopping day that became much more dramatic than it needed to be."></textarea>
+            <div class="prompt-nudges" aria-label="Prompt suggestions">
+              <button type="button" data-seed-prompt="Where were you going, and why were you together?">Where were you?</button>
+              <button type="button" data-seed-prompt="What mood did the day have: calm, chaotic, sleepy, excited?">What was the mood?</button>
+              <button type="button" data-seed-prompt="What small plan turned into a much bigger story?">What was the plan?</button>
+            </div>
+            <div class="setup-note">
+              <img src="assets/characters/16-interactive-question-object.svg" alt="A friendly question mark offers help.">
+              <p><strong>Stuck?</strong> A short phrase is enough. The room will ask more specific questions once the photos are hidden.</p>
+            </div>
+          </section>
+        </div>
+
+        <div class="sticky-progress">
+          <div>
+            <span id="setupCompletion">0 of 6 photographs ready</span>
+            <div class="progress-track" aria-hidden="true"><span id="progressFill"></span></div>
+          </div>
+          <button class="primary-button" type="button" data-action="hide-photos" disabled>Let the room hide them →</button>
+        </div>
+      </section>
+
+      <section class="screen hiding-screen" data-screen="hiding" aria-labelledby="hidingTitle">
+        <img class="hiding-effect" src="assets/effects/17-memory-reveal-effect.svg" alt="" aria-hidden="true">
+        <img class="hiding-curtain" src="assets/characters/02-magical-fitting-room-curtain.svg" alt="The fitting-room curtain smiles while hiding the photographs.">
+        <div class="hiding-copy">
+          <p class="eyebrow">Six photographs entered</p>
+          <h1 id="hidingTitle">The room has hidden every one.</h1>
+          <p>Follow the glow. Each object is keeping a photograph and a question. The room only knows what you choose to tell it.</p>
+          <button class="primary-button" type="button" data-action="begin-search">Start with the clothing rack →</button>
+        </div>
+      </section>
+
+      <section class="screen explore-screen" data-screen="explore" aria-labelledby="exploreTitle">
+        <div class="room-stage">
+          <img class="room-backdrop" src="assets/backgrounds/01-main-fitting-room.svg" alt="The magical fitting room, now filled with hidden photographs.">
+          <div class="room-guidance">
+            <div>
+              <p class="eyebrow">The room whispers</p>
+              <h1 id="exploreTitle">“The rack is humming. Start there.”</h1>
+            </div>
+            <div class="room-progress"><strong id="foundCount">0 / 6</strong><span>memories found</span></div>
+          </div>
+
+          <button class="discovery-marker marker-rack is-current" type="button" data-discovery="0" aria-label="Search the glowing clothing rack">
+            <span class="marker-glow" aria-hidden="true"></span><span class="marker-label">Clothing rack</span>
+          </button>
+          <button class="discovery-marker marker-mirror" type="button" data-discovery="1" aria-label="Search the mirror">
+            <span class="marker-glow" aria-hidden="true"></span><span class="marker-label">Living mirror</span>
+          </button>
+          <button class="discovery-marker marker-coffee" type="button" data-discovery="2" aria-label="Search the tiny coffee cup">
+            <img src="assets/characters/13-tiny-coffee-cup.svg" alt=""><span class="marker-glow" aria-hidden="true"></span><span class="marker-label">Coffee cup</span>
+          </button>
+          <button class="discovery-marker marker-jacket" type="button" data-discovery="3" aria-label="Search the glowing denim jacket">
+            <img src="assets/clothing/y2k/03-pastel-denim-jacket.svg" alt=""><span class="marker-glow" aria-hidden="true"></span><span class="marker-label">Denim jacket</span>
+          </button>
+          <button class="discovery-marker marker-dress" type="button" data-discovery="4" aria-label="Search the glowing puff-sleeve dress">
+            <img src="assets/clothing/cottagecore/05-puff-sleeve-dress.svg" alt=""><span class="marker-glow" aria-hidden="true"></span><span class="marker-label">Puff-sleeve dress</span>
+          </button>
+          <button class="discovery-marker marker-curtain" type="button" data-discovery="5" aria-label="Search the fitting-room curtain">
+            <span class="marker-glow" aria-hidden="true"></span><span class="marker-label">Curtain</span>
+          </button>
+
+          <aside class="room-ledger" aria-label="Discovered photographs">
+            <p class="eyebrow">Found so far</p>
+            <div id="foundPhotos" class="found-photos"></div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="screen story-gate-screen" data-screen="story-gate" aria-labelledby="storyGateTitle">
+        <img class="story-gate-box" src="assets/objects/08-memory-box.svg" alt="The memory box glows after collecting six memories.">
+        <div class="story-gate-copy">
+          <p class="eyebrow">Six photographs. Six remembered fragments.</p>
+          <h1 id="storyGateTitle">The room has made up a story.</h1>
+          <p>It is not the truth. It is the fitting room’s wildly unofficial fantasy version, assembled only from the details you gave it.</p>
+          <button class="primary-button" type="button" data-action="generate-story">Enter the fantasy version →</button>
+        </div>
+      </section>
+
+      <section class="screen ending-screen" data-screen="ending" aria-labelledby="storyTitle">
+        <div class="ending-heading">
+          <p class="eyebrow">The room’s completely unofficial version</p>
+          <h1 id="storyTitle">The Case of the Jacket That Refused to Leave</h1>
+          <p>A funny fantasy assembled from your six photographs and the memories you added.</p>
+        </div>
+
+        <div class="fantasy-scene" id="fantasyScene" role="img" aria-label="A generated fitting-room scene starring two magical outfit characters and the six photographs.">
+          <img class="scene-room" src="assets/backgrounds/01-main-fitting-room.svg" alt="">
+          <img class="scene-effect" src="assets/effects/17-memory-reveal-effect.svg" alt="">
+          <img class="scene-character character-one" id="characterOne" src="assets/clothing/y2k/03-pastel-denim-jacket.svg" alt="A magical denim-jacket character representing the creator.">
+          <img class="scene-character character-two" id="characterTwo" src="assets/clothing/cottagecore/05-puff-sleeve-dress.svg" alt="A magical dress character representing the friend.">
+          <img class="scene-prop prop-one" id="characterPropOne" src="assets/objects/11-magic-clothing-hanger.svg" alt="A magical story prop for the creator character.">
+          <img class="scene-prop prop-two" id="characterPropTwo" src="assets/characters/13-tiny-coffee-cup.svg" alt="A magical story prop for the friend character.">
+          <div class="character-name name-one" id="sceneNameOne">You</div>
+          <div class="character-name name-two" id="sceneNameTwo">Your friend</div>
+          <div class="scene-role role-one" id="sceneRoleOne">Wardrobe Whisperer</div>
+          <div class="scene-role role-two" id="sceneRoleTwo">Keeper of the Bottomless Cup</div>
+          <div class="scene-photos" id="scenePhotos"></div>
+          <div class="scene-caption" id="sceneCaption">Official witnesses to some very important nonsense.</div>
+        </div>
+
+        <section class="character-casting" aria-labelledby="characterCastingTitle">
+          <div class="casting-heading">
+            <p class="eyebrow">Surprise casting by the room</p>
+            <h2 id="characterCastingTitle">Your story generated two fitting-room characters.</h2>
+            <p>Their roles, costumes, props, powers, and flaws come from repeated details in the memories.</p>
+          </div>
+          <article class="character-profile">
+            <img id="profileOneImage" src="assets/clothing/y2k/03-pastel-denim-jacket.svg" alt="The creator’s generated virtual character.">
+            <div>
+              <p class="profile-name" id="profileOneName">You</p>
+              <h3 id="profileOneRole">Wardrobe Whisperer</h3>
+              <dl>
+                <div><dt>Magical power</dt><dd id="profileOnePower">Makes every questionable outfit look intentional.</dd></div>
+                <div><dt>Fatal flaw</dt><dd id="profileOneFlaw">One dramatic sleeve.</dd></div>
+                <div><dt>Story prop</dt><dd id="profileOneProp">The Hanger of Second Opinions</dd></div>
+              </dl>
+            </div>
+          </article>
+          <article class="character-profile">
+            <img id="profileTwoImage" src="assets/clothing/cottagecore/05-puff-sleeve-dress.svg" alt="The friend’s generated virtual character.">
+            <div>
+              <p class="profile-name" id="profileTwoName">Your friend</p>
+              <h3 id="profileTwoRole">Keeper of the Bottomless Cup</h3>
+              <dl>
+                <div><dt>Magical power</dt><dd id="profileTwoPower">Rewinds the five minutes before every photograph.</dd></div>
+                <div><dt>Fatal flaw</dt><dd id="profileTwoFlaw">Gets distracted by snacks.</dd></div>
+                <div><dt>Story prop</dt><dd id="profileTwoProp">The Cup That Remembers After</dd></div>
+              </dl>
+            </div>
+          </article>
+        </section>
+
+        <div class="story-layout">
+          <article class="story-copy" id="storyCopy"></article>
+          <aside class="story-actions">
+            <img src="assets/characters/03-magical-mirror.svg" alt="The living mirror presents the finished story.">
+            <p class="eyebrow">Keep the fantasy</p>
+            <h2>Your fitting-room scene is ready.</h2>
+            <button class="primary-button full" type="button" data-action="prepare-share">Create your friend’s chapter</button>
+            <button class="secondary-button full" type="button" data-action="download-scene">Prepare PNG download</button>
+            <button class="secondary-button full" type="button" data-action="shuffle-fantasy">Regenerate the casting</button>
+            <p class="illustration-note"><strong>Current illustration mode:</strong> locally composed from the supplied fitting-room assets. A production version can use an image model for a newly rendered scene.</p>
+            <button class="text-button" type="button" data-action="restart">Begin another room</button>
+          </aside>
+        </div>
+      </section>
+
+      <section class="screen friend-intro-screen" data-screen="friend-intro" aria-labelledby="friendIntroTitle">
+        <div class="friend-portal">
+          <img class="friend-portal-room" src="assets/backgrounds/01-main-fitting-room.svg" alt="The magical fitting room opens for the invited friend.">
+          <img class="friend-portal-effect" src="assets/effects/17-memory-reveal-effect.svg" alt="">
+          <img class="friend-avatar" id="friendAvatar" src="assets/clothing/cottagecore/05-puff-sleeve-dress.svg" alt="The friend’s generated fantasy character.">
+          <img class="friend-prop" id="friendProp" src="assets/characters/13-tiny-coffee-cup.svg" alt="The friend character’s magical story prop.">
+          <div class="friend-role-seal">
+            <span id="friendCharacterName">Your friend</span>
+            <strong id="friendCharacterRole">Keeper of the Bottomless Cup</strong>
+          </div>
+        </div>
+        <div class="friend-intro-copy">
+          <div class="room-bubble">
+            <p class="eyebrow">A message from the room</p>
+            <h1 id="friendIntroTitle">You have been written into another chapter.</h1>
+            <p id="friendInvitationCopy">Someone left six photographs and six memories inside the fitting room. You are the fantasy character who has to pair them back together.</p>
+          </div>
+          <p class="chapter-title" id="friendStoryTitle">The Case of the Jacket That Refused to Behave</p>
+          <details class="friend-story-preview">
+            <summary>Read the fantasy chapter</summary>
+            <div id="friendSavedStory"></div>
+          </details>
+          <button class="primary-button" type="button" data-action="begin-friend-quiz">Step into Chapter Two →</button>
+        </div>
+      </section>
+
+      <section class="screen friend-quiz-screen" data-screen="friend-quiz" aria-labelledby="quizMemoryTitle">
+        <div class="quiz-room">
+          <img class="quiz-room-backdrop" src="assets/backgrounds/01-main-fitting-room.svg" alt="The fitting room contains six objects hiding photographs.">
+          <div class="quiz-bubble">
+            <p class="eyebrow">The room remembers</p>
+            <h1 id="quizMemoryTitle">Which photograph belongs to this memory?</h1>
+            <blockquote id="quizMemory">“We spent forever deciding whether the jacket was brilliant or ridiculous.”</blockquote>
+            <p id="quizGuidance">Search a glowing object. You can keep looking until one feels right.</p>
+            <div id="quizIconTrail" class="quiz-icon-trail" aria-label="Chapter Two object trail"></div>
+          </div>
+          <div class="quiz-progress"><strong id="quizProgress">0 / 6</strong><span>pairs restored</span></div>
+          <div id="quizCards" class="quiz-object-field" aria-label="Room objects hiding photographs"></div>
+          <div id="quizChoicePanel" class="quiz-choice-panel is-hidden" aria-live="polite">
+            <div class="quiz-flash-photo">
+              <img id="quizFlashPhoto" src="assets/objects/09-polaroid-photo-frame.svg" alt="The photograph visible during this two-second memory flash.">
+              <span class="flash-progress" aria-hidden="true"></span>
+              <small>Two-second memory flash</small>
+            </div>
+            <div>
+              <p class="eyebrow">You uncovered a photograph</p>
+              <h2>Does this one belong to the memory?</h2>
+              <div class="quiz-choice-actions">
+                <button class="secondary-button" type="button" data-action="keep-looking">Keep looking</button>
+                <button class="primary-button" type="button" data-action="choose-photo">Choose this photo</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen friend-complete-screen" data-screen="friend-complete" aria-labelledby="friendCompleteTitle">
+        <img class="friend-complete-effect" src="assets/effects/17-memory-reveal-effect.svg" alt="">
+        <div class="friend-complete-copy">
+          <p class="eyebrow">Chapter Two complete</p>
+          <h1 id="friendCompleteTitle">You restored all six memories.</h1>
+          <p id="friendCompleteMessage">The room accepts your work and officially recognizes you as a fantasy character of excellent judgment.</p>
+          <div id="friendMatches" class="friend-matches"></div>
+          <div class="friend-complete-actions">
+            <button class="primary-button" type="button" data-action="download-memory-collage">Prepare memory collage</button>
+            <button class="secondary-button" type="button" data-action="replay-friend-quiz">Play the mystery again</button>
+          </div>
+        </div>
+        <img class="friend-complete-avatar" id="friendCompleteAvatar" src="assets/clothing/cottagecore/05-puff-sleeve-dress.svg" alt="The friend’s fantasy character celebrates completing the chapter.">
+      </section>
+    </main>
+
+    <dialog id="discoveryDialog" class="discovery-dialog">
+      <button class="dialog-close" type="button" data-action="close-discovery" aria-label="Close memory question">×</button>
+      <div class="discovery-photo-wrap">
+        <img id="discoveryPhoto" src="assets/objects/09-polaroid-photo-frame.svg" alt="The photograph found behind this object.">
+        <span id="discoveryNumber">PHOTO 01</span>
+      </div>
+      <div class="discovery-question">
+        <p class="eyebrow" id="discoveryObject">The clothing rack found this</p>
+        <h2 id="discoveryPrompt">What was happening in this moment?</h2>
+        <p class="prompt-help" id="promptHelp">You might remember a decision, an outfit, a joke, or what happened five seconds later.</p>
+        <div class="prompt-angles" id="promptAngles" aria-label="Choose another way into this memory"></div>
+        <label class="field-label" for="discoveryMemory">What do you remember?</label>
+        <textarea id="discoveryMemory" maxlength="260" rows="5" placeholder="We were trying to decide whether the jacket was brilliant or completely ridiculous."></textarea>
+        <div class="field-meta"><span>A sentence or two is enough.</span><span><span id="discoveryCount">0</span>/260</span></div>
+        <div class="dialog-actions">
+          <button class="secondary-button" type="button" data-action="skip-memory">I’m not sure</button>
+          <button class="primary-button" type="button" data-action="save-discovery" disabled>Place this memory in the room →</button>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog id="privacyDialog" class="privacy-dialog">
+      <button class="dialog-close" type="button" data-action="close-privacy" aria-label="Close privacy note">×</button>
+      <p class="eyebrow">Prototype privacy</p>
+      <h2>The room stays in this browser.</h2>
+      <p>Uploaded photos and written memories are used only for this local session. This prototype does not upload, analyze, or send them anywhere.</p>
+      <p>The fantasy story is assembled locally from your words. Its magical additions are openly fictional.</p>
+    </dialog>
+
+    <dialog id="exportDialog" class="export-dialog">
+      <button class="dialog-close" type="button" data-action="close-export" aria-label="Close image export">×</button>
+      <p class="eyebrow">Your generated scene</p>
+      <h2 id="exportDialogTitle">The PNG is ready to keep.</h2>
+      <p id="exportStatus">Preview the illustration, then use the download button below.</p>
+      <img id="exportPreview" src="assets/backgrounds/01-main-fitting-room.svg" alt="Preview of the generated fitting-room illustration.">
+      <div class="export-actions">
+        <a id="sceneSaveLink" class="primary-button export-save-link" href="#" download="generated-fitting-room-image.png" aria-disabled="true">Save PNG</a>
+        <button id="sceneShareButton" class="secondary-button" type="button" data-action="share-export">Share image</button>
+        <button id="sceneOpenButton" class="secondary-button" type="button" data-action="view-export">View full screen</button>
+      </div>
+      <p class="export-help">In the full-screen viewer, right-click the image or press and hold it on a phone or tablet to save or share.</p>
+    </dialog>
+
+    <dialog id="imageViewerDialog" class="image-viewer-dialog">
+      <button class="viewer-close" type="button" data-action="close-viewer" aria-label="Close full-screen image">×</button>
+      <img id="fullscreenExportPreview" src="assets/backgrounds/01-main-fitting-room.svg" alt="Full-screen preview of the generated fitting-room illustration.">
+      <p>Right-click or press and hold the image to save it.</p>
+    </dialog>
+
+    <dialog id="shareDialog" class="share-dialog">
+      <button class="dialog-close" type="button" data-action="close-share" aria-label="Close friend chapter sharing">×</button>
+      <p class="eyebrow">Chapter Two</p>
+      <h2>Give your friend the room’s next mystery.</h2>
+      <p id="shareSummary">Your friend will enter as their fantasy character, then match six hidden photographs to the memories you wrote.</p>
+      <div class="share-preview">
+        <img id="shareCharacterPreview" src="assets/clothing/cottagecore/05-puff-sleeve-dress.svg" alt="Preview of the friend’s fantasy character.">
+        <div><span id="shareFriendName">Your friend</span><strong id="shareFriendRole">Keeper of the Bottomless Cup</strong></div>
+      </div>
+      <label class="share-consent">
+        <input id="shareConsent" type="checkbox">
+        <span>I reviewed these six photos and memories and want to include them in the private friend chapter.</span>
+      </label>
+      <div class="share-actions">
+        <button class="primary-button share-gated" type="button" data-action="share-friend-chapter" disabled>Share friend chapter</button>
+        <button class="secondary-button share-gated" type="button" data-action="download-friend-chapter" disabled>Save chapter file</button>
+        <button class="secondary-button" type="button" data-action="preview-friend-chapter">Preview as my friend</button>
+      </div>
+      <p class="share-boundary"><strong>Prototype sharing:</strong> this creates one private HTML file you can send directly. Turning it into a normal clickable web link requires private hosting and photo storage.</p>
+    </dialog>
+    <div id="liveRegion" class="sr-only" aria-live="polite"></div>
+  </div>
+  <script id="sharedChapterData">window.__SHARED_CHAPTER__ = null;</script>
+  <script src="app.js"></script>
+</body>
+</html>

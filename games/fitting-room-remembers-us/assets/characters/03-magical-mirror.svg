@@ -1,0 +1,134 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 900" role="img" aria-labelledby="mirror-title mirror-desc">
+  <title id="mirror-title">Magical googly-eyed fitting room mirror</title>
+  <desc id="mirror-desc">An editable pastel blue full-length mirror with pink bows, cottage flowers, Y2K charms, enormous independently aimed googly eyes, rosy cheeks, and a mysterious smile.</desc>
+  <defs>
+    <linearGradient id="mirror-frame-gradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#bfe9f5"/>
+      <stop offset="0.52" stop-color="#9fd3ea"/>
+      <stop offset="1" stop-color="#8ebbd9"/>
+    </linearGradient>
+    <linearGradient id="mirror-glass-gradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fffaf0"/>
+      <stop offset="0.42" stop-color="#e4f5fb"/>
+      <stop offset="1" stop-color="#e9dff5"/>
+    </linearGradient>
+    <linearGradient id="mirror-pink-gradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffc6da"/>
+      <stop offset="1" stop-color="#efa6c2"/>
+    </linearGradient>
+    <filter id="mirror-soft-shadow" x="-25%" y="-20%" width="150%" height="160%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="12" result="shadow-blur"/>
+      <feOffset in="shadow-blur" dy="12" result="shadow-offset"/>
+      <feFlood flood-color="#6f7598" flood-opacity="0.2" result="shadow-color"/>
+      <feComposite in="shadow-color" in2="shadow-offset" operator="in" result="shadow"/>
+      <feMerge><feMergeNode in="shadow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="mirror-inner-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="7" result="blur"/>
+      <feComposite in="blur" in2="SourceGraphic" operator="out" result="ring"/>
+      <feFlood flood-color="#fff9f0" flood-opacity="0.75" result="color"/>
+      <feComposite in="color" in2="ring" operator="in"/>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <pattern id="mirror-paper-grain" width="18" height="18" patternUnits="userSpaceOnUse">
+      <circle cx="3" cy="5" r="0.8" fill="#fff" opacity="0.35"/>
+      <circle cx="13" cy="11" r="0.7" fill="#6f7598" opacity="0.08"/>
+      <path d="M6 15l2-1" stroke="#fff" stroke-width="0.7" opacity="0.25"/>
+    </pattern>
+    <clipPath id="mirror-glass-clip"><rect x="151" y="152" width="298" height="553" rx="147"/></clipPath>
+  </defs>
+  <style>
+    .outline{stroke:#596486;stroke-width:8;stroke-linecap:round;stroke-linejoin:round}
+    .detail{stroke:#7b79a0;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+    .fine{stroke:#7b79a0;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+  </style>
+  <g id="ground-shadow" opacity="0.25">
+    <ellipse cx="300" cy="844" rx="178" ry="27" fill="#7b79a0"/>
+  </g>
+  <g id="mirror-character" filter="url(#mirror-soft-shadow)">
+    <g id="stand">
+      <path d="M238 697c-3 40-8 74-19 105" fill="none" class="outline"/>
+      <path d="M362 697c3 40 8 74 19 105" fill="none" class="outline"/>
+      <path d="M179 823c36-24 78-31 121-18 43-13 85-6 121 18-6 24-30 25-51 13-45 15-95 15-140 0-21 12-45 11-51-13z" fill="url(#mirror-frame-gradient)" class="outline"/>
+      <path d="M219 802c29 1 55 8 81 20 26-12 52-19 81-20" fill="none" class="detail" opacity="0.65"/>
+      <circle cx="300" cy="819" r="9" fill="#f7b7cf" class="detail"/>
+    </g>
+    <g id="frame">
+      <rect x="112" y="78" width="376" height="668" rx="188" fill="url(#mirror-frame-gradient)" class="outline"/>
+      <rect x="132" y="98" width="336" height="628" rx="168" fill="#d9f0f6" class="detail"/>
+      <rect x="151" y="117" width="298" height="590" rx="149" fill="url(#mirror-glass-gradient)" class="outline"/>
+      <path d="M126 250c-17 105-13 292 13 394M474 250c17 105 13 292-13 394" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" opacity="0.42"/>
+      <path d="M128 149c25-43 62-68 108-79M472 149c-25-43-62-68-108-79" fill="none" class="detail" opacity="0.5"/>
+      <rect x="112" y="78" width="376" height="668" rx="188" fill="url(#mirror-paper-grain)" opacity="0.45"/>
+    </g>
+    <g id="reflection" clip-path="url(#mirror-glass-clip)">
+      <rect x="151" y="152" width="298" height="553" fill="url(#mirror-glass-gradient)"/>
+      <path d="M169 222c91-69 184-77 277-24" fill="none" stroke="#fff" stroke-width="26" stroke-linecap="round" opacity="0.45"/>
+      <path d="M168 292c77-46 154-58 232-36" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" opacity="0.45"/>
+      <path d="M412 393c-56 47-98 111-116 190" fill="none" stroke="#c0e7f2" stroke-width="22" stroke-linecap="round" opacity="0.32"/>
+      <g id="reflection-sparkles" fill="#fffdf8" stroke="#8f83ab" stroke-width="3">
+        <path d="M209 410l5 12 12 5-12 5-5 12-5-12-12-5 12-5z"/>
+        <path d="M387 517l4 9 9 4-9 4-4 9-4-9-9-4 9-4z"/>
+        <path d="M359 628l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"/>
+      </g>
+    </g>
+    <g id="face">
+      <g id="eye-left" transform="rotate(-6 239 205)">
+        <ellipse cx="239" cy="205" rx="70" ry="76" fill="#fffdf8" class="outline"/>
+        <ellipse id="pupil-left" cx="258" cy="225" rx="27" ry="34" fill="#3e4565"/>
+        <circle cx="248" cy="214" r="8" fill="#fffdf8"/>
+      </g>
+      <g id="eye-right" transform="rotate(7 359 202)">
+        <ellipse cx="359" cy="202" rx="70" ry="77" fill="#fffdf8" class="outline"/>
+        <ellipse id="pupil-right" cx="337" cy="218" rx="27" ry="34" fill="#3e4565"/>
+        <circle cx="327" cy="207" r="8" fill="#fffdf8"/>
+      </g>
+      <g id="cheeks" fill="#f5c2ab" opacity="0.78">
+        <ellipse cx="200" cy="317" rx="30" ry="15"/>
+        <ellipse cx="400" cy="317" rx="30" ry="15"/>
+      </g>
+      <path id="mouth" d="M270 327c18 19 42 19 60 0" fill="none" class="detail"/>
+      <path d="M294 343c5 3 8 3 13 0" fill="none" stroke="#efa6c2" stroke-width="4" stroke-linecap="round"/>
+    </g>
+    <g id="decorations">
+      <g id="top-bow" transform="translate(300 72)">
+        <path d="M-5 8c-34 20-75 4-74-27 1-25 35-30 77 6z" fill="url(#mirror-pink-gradient)" class="outline"/>
+        <path d="M5 8c34 20 75 4 74-27-1-25-35-30-77 6z" fill="url(#mirror-pink-gradient)" class="outline"/>
+        <path d="M-20-7Q0-24 20-7L14 22Q0 31-14 22z" fill="#ffd7e5" class="outline"/>
+        <path d="M-13 24l-15 58 29-21 25 22-13-59" fill="#f7b7cf" class="outline"/>
+      </g>
+      <g id="left-floral-cluster">
+        <path d="M122 448c-34-29-43-69-21-105M127 446c18-42 50-68 83-80" fill="none" stroke="#a9c8ad" stroke-width="7" stroke-linecap="round"/>
+        <g transform="translate(105 344)">
+          <circle r="15" fill="#f7d0dc" class="detail"/>
+          <circle cx="-16" cy="-2" r="13" fill="#ffdbe7" class="detail"/>
+          <circle cx="14" cy="-9" r="13" fill="#ffdbe7" class="detail"/>
+          <circle cx="3" cy="15" r="13" fill="#ffdbe7" class="detail"/>
+          <circle r="8" fill="#f1c36d"/>
+        </g>
+        <path d="M142 409c18-17 39-16 47 5-19 11-36 8-47-5zM119 392c-18-14-34-9-39 10 17 8 30 5 39-10z" fill="#a9c8ad" class="fine"/>
+      </g>
+      <g id="right-ribbon" transform="translate(471 505) rotate(10)">
+        <path d="M0 0c-26-20-49-7-43 14 5 18 23 15 43-2 20 17 38 20 43 2C49-7 26-20 0 0z" fill="#c9b8e9" class="detail"/>
+        <circle r="11" fill="#f7b7cf" class="detail"/>
+        <path d="M-7 12l-11 65 24-18 19 22-17-69" fill="#c9b8e9" class="detail"/>
+      </g>
+      <g id="stickers" class="detail">
+        <path d="M469 323l8 20 21 3-16 14 5 21-18-11-18 11 5-21-16-14 21-3z" fill="#fff1a8"/>
+        <path d="M124 555c0-19 26-26 36-8 10-18 36-11 36 8 0 22-36 43-36 43s-36-21-36-43z" fill="#f7b7cf"/>
+        <path d="M467 640l6 13 14 6-14 6-6 14-6-14-14-6 14-6z" fill="#fff8e8"/>
+      </g>
+      <g id="tiny-charms" fill="none" class="fine">
+        <path d="M159 151c-15-18-31-21-47-10"/>
+        <circle cx="105" cy="149" r="9" fill="#c9b8e9"/>
+        <path d="M444 565c15 11 27 26 34 45"/>
+        <path d="M479 610l6 12 13 3-10 9 2 14-11-7-12 7 3-14-10-9 13-3z" fill="#fff1a8"/>
+      </g>
+    </g>
+  </g>
+  <g id="floating-sparkles" fill="#fff8e8" class="fine">
+    <path d="M69 249l5 11 11 5-11 5-5 11-5-11-11-5 11-5z"/>
+    <path d="M526 402l4 9 9 4-9 4-4 9-4-9-9-4 9-4z"/>
+    <path d="M82 659l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"/>
+  </g>
+</svg>
